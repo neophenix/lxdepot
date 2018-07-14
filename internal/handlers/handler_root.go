@@ -13,5 +13,11 @@ func RootHandler(w http.ResponseWriter, r *http.Request) {
         return
     }
 
+    // Special case if we go to just /
+    if r.URL.Path == "/" {
+        ContainerListHandler(w,r)
+        return
+    }
+
     FourOhFourHandler(w,r)
 }
