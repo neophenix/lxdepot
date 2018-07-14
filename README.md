@@ -23,6 +23,22 @@ Ex.
 
 The config file controls PKI, the hosts we talk to, DNS configuration, and bootstrapping commands.  A fully documented sample config can be found in [configs/sample.yaml](configs/sample.yaml)
 
+## PKI
+
+To use this you need to create a client cert and key using openssl or similar.  This cert will then need added to all the LXD hosts you want to talk to via
+```
+lxc config trust add CERTFILE
+```
+
+## Disabling remote management for certain containers
+
+Sometimes you don't want people messing with your stuff.  To that end, if you do not want LXDepot to manage a container, that is to say start, stop, delete (it will still be listed and you can view info on it), add this user flag to the container.  It will tell LXDepot the container is off limits
+```
+lxc config set CONTAINERNAME user.lxdepot_lock true
+```
+
+LXDepot has no way to set that remotely, so an admin on the host will need to handle that.  Use unset or change the value from true to anything else for it to be unlocked
+
 ### Limitations
 
 First, this was an experiment in learning Go, so I'm sure there are a few things that make you go ... wat
