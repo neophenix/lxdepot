@@ -74,7 +74,7 @@ func CreateContainerHandler(conn *websocket.Conn, mt int, msg IncomingMessage) {
     data, _ = json.Marshal(OutgoingMessage{Id: id, Message: "Waiting for networking", Success: true})
     conn.WriteMessage(mt, data)
     // just going to sleep for now, maybe ping later?
-    time.Sleep(3 * time.Second)
+    time.Sleep(5 * time.Second)
     data, _ = json.Marshal(OutgoingMessage{Id: id, Message: "done", Success: true})
     conn.WriteMessage(mt, data)
 
