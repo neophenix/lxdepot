@@ -8,6 +8,7 @@ import(
     "github.com/neophenix/lxdepot/internal/lxd"
 )
 
+// HostListHandler handles requests for /hosts
 func HostListHandler(w http.ResponseWriter, r *http.Request) {
     w.Header().Set("Content-Type", "text/html")
 

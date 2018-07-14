@@ -1,5 +1,14 @@
 package main
 
+/*  LXDepot is a simple UI that lets one manage containers across multiple LXD hosts
+ *
+ *  Usage (highlightling default values):
+ *    ./lxdepot -port=8080 -config=configs/config.yaml -webroot=web/
+ *
+ *  See README.md for more detailed information, and configs/sample.yaml for more
+ *  details on what a config should look like
+ */
+
 import(
     "flag"
     "fmt"
@@ -11,6 +20,7 @@ import(
     "github.com/neophenix/lxdepot/internal/handlers/ws"
 )
 
+// All our command line params and config
 var port string
 var conf string
 var webroot string
@@ -18,12 +28,14 @@ var cacheTemplates bool
 var Conf *config.Config
 
 func main() {
+    // Pull in all the command line params
     flag.StringVar(&port, "port", "8080", "port number to listen on")
     flag.StringVar(&conf, "config", "configs/config.yaml", "config file")
     flag.StringVar(&webroot, "webroot", "web/", "path of webroot (templates, static, etc)")
     flag.BoolVar(&cacheTemplates, "cache_templates", true, "cache templates or read from disk each time")
     flag.Parse()
 
+    // Decided that printing out our "running config" was useful in the event things went awry
     fmt.Printf("webroot: " + webroot + "\n")
     fmt.Printf("config: " + conf + "\n")
     fmt.Printf("Listening on " + port + "\n")
@@ -51,6 +63,7 @@ func main() {
     handlers.AddRoute("/hosts$", handlers.HostListHandler)
     handlers.AddRoute("/ws$", ws.Handler)
 
+    // The root handler does all the route checking and handoffs
     http.HandleFunc("/", handlers.RootHandler)
 
     log.Fatal(http.ListenAndServe(":" + port, nil))

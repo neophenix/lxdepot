@@ -8,6 +8,7 @@ import(
     "github.com/neophenix/lxdepot/internal/lxd"
 )
 
+// ImageListHandler handles requests for /images
 func ImageListHandler(w http.ResponseWriter, r *http.Request) {
     w.Header().Set("Content-Type", "text/html")
 

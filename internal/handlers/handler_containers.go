@@ -10,6 +10,7 @@ import(
     "github.com/neophenix/lxdepot/internal/config"
 )
 
+// ContainerListHandler handles requests for /containers
 func ContainerListHandler(w http.ResponseWriter, r *http.Request) {
     w.Header().Set("Content-Type", "text/html")
 
@@ -29,6 +30,7 @@ func ContainerListHandler(w http.ResponseWriter, r *http.Request) {
     fmt.Fprintf(w, string(out.Bytes()))
 }
 
+// ContainerHandler handles requests for /container/HOST:NAME
 func ContainerHandler(w http.ResponseWriter, r *http.Request) {
     w.Header().Set("Content-Type", "text/html")
 
@@ -68,6 +70,7 @@ func ContainerHandler(w http.ResponseWriter, r *http.Request) {
     fmt.Fprintf(w, string(out.Bytes()))
 }
 
+// NewContainerHandler handles requests for /container/new
 func NewContainerHandler(w http.ResponseWriter, r *http.Request) {
     w.Header().Set("Content-Type", "text/html")
 

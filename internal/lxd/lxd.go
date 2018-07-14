@@ -1,3 +1,4 @@
+// Package lxd is our wrapper to the official lxd client
 package lxd
 
 import(
@@ -13,35 +14,46 @@ import(
     "github.com/neophenix/lxdepot/internal/config"
 )
 
+// config from our main function
 var Conf *config.Config
+// cache of connections to our LXD servers
 var lxdConnections = make(map[string]lxd.ContainerServer)
 
+// ContainerInfo is a conversion / grouping of useful container information as returned from the lxd client
 type ContainerInfo struct {
-    Host string
-    Container api.Container
-    State *api.ContainerState
-    Usage map[string]float64
+    Host string                 // Host is the LXD server hostname
+    Container api.Container     // Container details returned from lxd.GetContainers
+    State *api.ContainerState   // Container state from lxd.GetContainerState
+    Usage map[string]float64    // place to store usge conversions, like CPU usage
 }
 
+// ImageInfo like above is a grouping of useful image information for the frontend
 type ImageInfo struct {
-    Host string
-    Aliases []api.ImageAlias
-    Architecture string
-    Fingerprint string
+    Host string                 // LXD server hostname
+    Aliases []api.ImageAlias    // list of aliases this image goes by
+    Architecture string         // x86_64, etc
+    Fingerprint string          // fingerprint hash of the image for comparison
 }
 
+// DiscardCloser is a WriteCloser that just discards data.  When we exec commands on a container
+// stdout, etc need some place to go, but at the moment we don't care about the data.
 type DiscardCloser struct{}
 
+// Write just sends its data to the ioutil.Discard object
 func (DiscardCloser) Write(b []byte) (int, error) {
     return ioutil.Discard.Write(b)
 }
+// Close does nothing and is there just to satisfy the WriteCloser interface
 func (DiscardCloser) Close() error {
     return nil
 }
 
+// GetContainers asks for a list of containers from each LXD host, then optionally calls GetContainerState
+// on each container to populate state information (IP, CPU / Memory / Disk usage, etc)
 func GetContainers(host string, name string, getState bool) ([]ContainerInfo, error) {
     var containerInfo []ContainerInfo
 
+    // Always try to loop over the config array of hosts so we maintain the same ordering
     for _, lxdh := range Conf.LXDhosts {
         if host == "" || lxdh.Host == host {
             conn, err := getConnection(lxdh.Host)
@@ -50,11 +62,14 @@ func GetContainers(host string, name string, getState bool) ([]ContainerInfo, er
                 continue
             }
 
+            // annoyingly this doesn't return all the state information we want too, so we just get a list of containers
             containers, err := conn.GetContainers()
             if err != nil {
                 return containerInfo, err
             }
 
+            // Here wer are going to either just return the container asked for by name, and look to see if we wanted
+            // state info as well, typically we do, which could get expensive with lots of hosts or lots of containers
             for _, container := range containers {
                 if name == "" || container.Name == name {
                     var state *api.ContainerState
@@ -87,6 +102,8 @@ func GetContainers(host string, name string, getState bool) ([]ContainerInfo, er
     return containerInfo, nil
 }
 
+// GetContainerState calls out to our LXD host to get the state of the container.  State has data like network info,
+// memory usage, cpu seconds in use, running processes etc
 func GetContainerState(host string, name string) (*api.ContainerState, error) {
     conn, err := getConnection(host)
     if err != nil {
@@ -101,6 +118,7 @@ func GetContainerState(host string, name string) (*api.ContainerState, error) {
     return state, nil
 }
 
+// GetImages calls each LXD host to get a list of images available on each
 func GetImages(host string) ([]ImageInfo, error) {
     var images []ImageInfo
 
@@ -133,12 +151,16 @@ func GetImages(host string) ([]ImageInfo, error) {
     return images, nil
 }
 
+// CreateContainer creates a container from the given image, with the provided name on the LXD host
 func CreateContainer(host string, name string, image string) error {
     conn, err := getConnection(host)
     if err != nil {
         return err
     }
 
+    // We are going to graph a list of containers first to make sure someone isn't trying to create
+    // a duplicate name.  At some point we might consider adding a "fake cluster" flag to prevent
+    // the same name across any host, which will make moving them among hosts possible
     containerInfo, err := GetContainers("", "", false)
     if err != nil {
         return err
@@ -175,12 +197,14 @@ func CreateContainer(host string, name string, image string) error {
     return nil
 }
 
+// StartContainer starts a stopped container
 func StartContainer(host string, name string) error {
     conn, err := getConnection(host)
     if err != nil {
         return err
     }
 
+    // Grab container info to make sure our container isn't already running
     containerInfo, err := GetContainers(host, name, true)
     if err != nil {
         return err
@@ -192,6 +216,8 @@ func StartContainer(host string, name string) error {
                 // our container is already running so bail
                 return nil
             }
+
+            // don't allow remote management of anything we have locked
             if c.Container.ExpandedConfig["user.lxdepot_lock"] == "true" {
                 return errors.New("lock flag set, remote management denied")
             }
@@ -219,12 +245,14 @@ func StartContainer(host string, name string) error {
     return nil
 }
 
+// StopContainer stops a running container
 func StopContainer(host string, name string) error {
     conn, err := getConnection(host)
     if err != nil {
         return err
     }
 
+    // Grab container info to make sure our container is actually running
     containerInfo, err := GetContainers(host, name, true)
     if err != nil {
         return err
@@ -237,6 +265,7 @@ func StopContainer(host string, name string) error {
                 return nil
             }
 
+            // don't allow remote management of anything we have locked
             if c.Container.ExpandedConfig["user.lxdepot_lock"] == "true" {
                 return errors.New("lock flag set, remote management denied")
             }
@@ -264,12 +293,14 @@ func StopContainer(host string, name string) error {
     return nil
 }
 
+// DeleteContainer removes a container from a host
 func DeleteContainer(host string, name string) error {
     conn, err := getConnection(host)
     if err != nil {
         return err
     }
 
+    // Get container list to make sure we actually have a container with this name
     containerInfo, err := GetContainers(host, name, true)
     if err != nil {
         return err
@@ -277,6 +308,7 @@ func DeleteContainer(host string, name string) error {
 
     if len(containerInfo) > 0 {
         for _, c := range containerInfo {
+            // don't allow remote management of anything we have locked
             if c.Container.ExpandedConfig["user.lxdepot_lock"] == "true" {
                 return errors.New("lock flag set, remote management denied")
             }
@@ -299,6 +331,7 @@ func DeleteContainer(host string, name string) error {
     return nil
 }
 
+// GetHostResources grabs (the kind of limited) info about a host, available CPU cores, Memory, ...
 func GetHostResources(host string) (map[string]*api.Resources, error) {
     resourceHostMap := make(map[string]*api.Resources)
 
@@ -322,6 +355,8 @@ func GetHostResources(host string) (map[string]*api.Resources, error) {
     return resourceHostMap, nil
 }
 
+// CreateFile creates a file or directory on the container.  If the provided path ends in / we assume
+// that we are creating a directory
 func CreateFile(host string, name string, path string, mode int, contents string) error {
     conn, err := getConnection(host)
     if err != nil {
@@ -347,6 +382,9 @@ func CreateFile(host string, name string, path string, mode int, contents string
     return nil
 }
 
+// ExecCommand runs a command on the container and discards the output.  As further comments state,
+// there doesn't seem to be an accurate return of success or not, need to look for a status code return.
+// If a way is found, likely will stop discarding output and return that to the UI
 func ExecCommand(host string, name string, command []string) error {
     conn, err := getConnection(host)
     if err != nil {
@@ -384,6 +422,8 @@ func ExecCommand(host string, name string, command []string) error {
     return nil
 }
 
+// getConnection will either return a cached connection, or reach out and make a new connection
+// to the host before caching that
 func getConnection(host string) (lxd.ContainerServer, error) {
     if conn, ok := lxdConnections[host]; ok {
         return conn, nil

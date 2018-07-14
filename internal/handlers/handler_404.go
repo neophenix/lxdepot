@@ -6,6 +6,7 @@ import(
     "net/http"
 )
 
+// FourOhFourHandler is our 404 response
 func FourOhFourHandler(w http.ResponseWriter, r *http.Request) {
     w.Header().Set("Content-Type", "text/html")
 

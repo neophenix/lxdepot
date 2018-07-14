@@ -13,6 +13,8 @@ import(
     "github.com/neophenix/lxdepot/internal/config"
 )
 
+// ContainerBootstrapHandler calls bootstrapContainer to bootstrap an already
+// running container. Unused at the moment on the UI
 func ContainerBootstrapHandler(conn *websocket.Conn, mt int, msg IncomingMessage) {
     err := bootstrapContainer(conn, mt, msg.Data["host"], msg.Data["name"])
     if err != nil {
@@ -20,6 +22,10 @@ func ContainerBootstrapHandler(conn *websocket.Conn, mt int, msg IncomingMessage
     }
 }
 
+// CreateContainerHandler creates the container on our host, then if we are using a 3rd
+// party DNS gets an A record from there.
+// It then uploads the appropriate network config file to the container before starting it by calling setupContainerNetwork
+// Finally if any bootstrapping configuration is set, it to perform that by calling bootstrapContainer.
 func CreateContainerHandler(conn *websocket.Conn, mt int, msg IncomingMessage) {
     // Create the container
     // -------------------------
@@ -57,6 +63,7 @@ func CreateContainerHandler(conn *websocket.Conn, mt int, msg IncomingMessage) {
                 data, _ = json.Marshal(OutgoingMessage{Id: id, Message: ip, Success: true})
                 conn.WriteMessage(mt, data)
 
+                // upload our network config
                 setupContainerNetwork(conn, mt, msg.Data["host"], msg.Data["name"], ip)
             }
         }
@@ -73,7 +80,9 @@ func CreateContainerHandler(conn *websocket.Conn, mt int, msg IncomingMessage) {
     id = time.Now().UnixNano()
     data, _ = json.Marshal(OutgoingMessage{Id: id, Message: "Waiting for networking", Success: true})
     conn.WriteMessage(mt, data)
-    // just going to sleep for now, maybe ping later?
+    // just going to sleep for now, maybe ping later?  This is to ensure the networking is up before
+    // we continue on.  Otherwise because we can't really check the command status, we will think things
+    // like yum installed what we wanted, when really it bailed due to a network issue.
     time.Sleep(5 * time.Second)
     data, _ = json.Marshal(OutgoingMessage{Id: id, Message: "done", Success: true})
     conn.WriteMessage(mt, data)
@@ -84,6 +93,8 @@ func CreateContainerHandler(conn *websocket.Conn, mt int, msg IncomingMessage) {
     }
 }
 
+// setupContainerNetwork looks at the OS of a container and then looks up any network template in our config.
+// It then parses that template through text/template passing the IP and uploads it to the container
 func setupContainerNetwork(conn *websocket.Conn, mt int, host string, name string, ip string) {
     id := time.Now().UnixNano()
     data, _ := json.Marshal(OutgoingMessage{Id: id, Message: "Configuring container networking", Success: true})
@@ -99,6 +110,9 @@ func setupContainerNetwork(conn *websocket.Conn, mt int, host string, name strin
         return
     }
 
+    // Instead of hardcoding the OSes here, once we do the next one it should just match the key in the config
+    // Right now there are a few assumptions that things will just be there, so should probably also put
+    // the path in the config and just loop over everything we find
     if containerInfo[0].Container.ExpandedConfig["image.os"] == "Centos" {
         var contents bytes.Buffer
         tmpl, err := template.New("centos-ifcfg-eth0").Parse(Conf.Networking["centos"]["ifcfg-eth0"])
@@ -122,6 +136,8 @@ func setupContainerNetwork(conn *websocket.Conn, mt int, host string, name strin
     }
 }
 
+// bootstrapContainer loops over all the FileOrCommand objects in the bootstrap section of the config
+// and performs each item sequentially
 func bootstrapContainer(conn *websocket.Conn, mt int, host string, name string) error {
     id := time.Now().UnixNano()
     data, _ := json.Marshal(OutgoingMessage{Id: id, Message: "Getting container state", Success: true})
@@ -137,8 +153,10 @@ func bootstrapContainer(conn *websocket.Conn, mt int, host string, name string) 
     data, _ = json.Marshal(OutgoingMessage{Id: id, Message: "done", Success: true})
     conn.WriteMessage(mt, data)
 
+    // Again like in the network setup we should just match up the config key name with the OS
     if containerInfo[0].Container.ExpandedConfig["image.os"] == "Centos" {
         for _, step := range Conf.Bootstrap["centos"] {
+            // depending on the type, call the appropriate helper
             if step.Type == "file" {
                 err = bootstrapCreateFile(conn, mt, host, name, step)
                 if err != nil {
@@ -156,6 +174,9 @@ func bootstrapContainer(conn *websocket.Conn, mt int, host string, name string) 
     return nil
 }
 
+// bootstrapCreateFile operates on a Type = file bootstrap step.
+// If there is a local_path, it reads the contents of that file from disk.
+// The contents are then sent to the lxd.CreateFile with the path on the container and permissions to "do the right thing"
 func bootstrapCreateFile(conn *websocket.Conn, mt int, host string, name string, info config.FileOrCommand) error {
     id := time.Now().UnixNano()
     data, _ := json.Marshal(OutgoingMessage{Id: id, Message: "Creating " + info.RemotePath, Success: true})
@@ -184,6 +205,8 @@ func bootstrapCreateFile(conn *websocket.Conn, mt int, host string, name string,
     return nil
 }
 
+// bootstrapExecCommand operates on a Type = command bootstrap step.
+// This is really just a wrapper around lxd.ExecCommand
 func bootstrapExecCommand(conn *websocket.Conn, mt int, host string, name string, info config.FileOrCommand) error {
     id := time.Now().UnixNano()
     data, _ := json.Marshal(OutgoingMessage{Id: id, Message: "Executing " + strings.Join(info.Command, " "), Success: true})

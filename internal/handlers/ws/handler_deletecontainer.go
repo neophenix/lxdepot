@@ -8,6 +8,8 @@ import(
     "github.com/neophenix/lxdepot/internal/lxd"
 )
 
+// DeleteContainerHandler first stops a running container (there is no force like the lxc command line),
+// then deletes any DNS entry for it from our 3rd party, and then deletes the container.
 func DeleteContainerHandler(conn *websocket.Conn, mt int, msg IncomingMessage) {
     // Stop the container
     err := StopContainerHandler(conn, mt, msg)

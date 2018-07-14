@@ -7,6 +7,7 @@ import(
     "github.com/neophenix/lxdepot/internal/lxd"
 )
 
+// StartContainerHandler starts a stopped container
 func StartContainerHandler(conn *websocket.Conn, mt int, msg IncomingMessage) error {
     // Start the container
     id := time.Now().UnixNano()
