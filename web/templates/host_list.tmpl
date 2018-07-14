@@ -4,6 +4,7 @@
         <th>Host</th>
         <th>CPUs</th>
         <th>Memory Used / Total</th>
+        <td>Containers Running / Total</th>
     </thead>
     <tbody>
         {{range .Conf.LXDhosts}}
@@ -11,6 +12,7 @@
             <td>{{.Host}}</td>
             <td>{{(index $.HostResourceMap .Host).CPU.Total}}</td>
             <td>{{MakeBytesMoreHuman (index $.HostResourceMap .Host).Memory.Used}} / {{MakeBytesMoreHuman (index $.HostResourceMap .Host).Memory.Total}}</td>
+            <td>{{index (index $.HostContainerInfo .Host) "running"}} / {{index (index $.HostContainerInfo .Host) "total"}}</td>
         </tr>
         {{end}}
     </tbody>
