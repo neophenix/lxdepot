@@ -96,7 +96,10 @@ tr:nth-child(even) {background-color: #ececec;}
     margin: 5px 0px 10px 5px;
 }
 
-.container {
+.containerRow {
+    cursor: pointer;
+}
+.hostRow {
     cursor: pointer;
 }
 

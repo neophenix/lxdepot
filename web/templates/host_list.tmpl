@@ -8,7 +8,7 @@
     </thead>
     <tbody>
         {{range .Conf.LXDhosts}}
-        <tr>
+        <tr class="hostRow" id="{{.Host}}">
             <td>{{.Host}}</td>
             <td>{{(index $.HostResourceMap .Host).CPU.Total}}</td>
             <td>{{MakeBytesMoreHuman (index $.HostResourceMap .Host).Memory.Used}} / {{MakeBytesMoreHuman (index $.HostResourceMap .Host).Memory.Total}}</td>
@@ -20,6 +20,19 @@
 {{end}}
 
 {{define "js"}}
+<script>
+function hostRowClick(e) {
+    window.location = "/containers/" + this.id;
+    e.stopPropogation();
+}
+
+(function() {
+    var rows = document.querySelectorAll(".hostRow");
+    for ( var i = 0; i < rows.length; i++ ) {
+        rows[i].addEventListener("click", hostRowClick);
+    }
+})();
+</script>
 {{end}}
 
 {{define "pagebtn"}}

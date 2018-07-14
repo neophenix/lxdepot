@@ -30,6 +30,46 @@ func ContainerListHandler(w http.ResponseWriter, r *http.Request) {
     fmt.Fprintf(w, string(out.Bytes()))
 }
 
+// ContainerHostListHandler handles requests for /containers/HOST
+func ContainerHostListHandler(w http.ResponseWriter, r *http.Request) {
+    w.Header().Set("Content-Type", "text/html")
+
+    reg := regexp.MustCompile("/containers/(?P<Host>[^:]+)")
+    match := reg.FindStringSubmatch(r.URL.Path)
+
+    if len(match) != 2 {
+        FourOhFourHandler(w,r)
+        return
+    }
+
+    // Check that the host is actually one we have configured for use
+    found := false
+    for _, lxdh := range Conf.LXDhosts {
+        if lxdh.Host == match[1] {
+            found = true
+        }
+    }
+    if ! found {
+        FourOhFourHandler(w,r)
+        return
+    }
+
+    containerInfo, err := lxd.GetContainers(match[1], "", true)
+    if err != nil {
+        log.Printf("Could not get container list %s\n", err.Error())
+    }
+
+    tmpl := readTemplate("container_list.tmpl")
+
+    var out bytes.Buffer
+    tmpl.ExecuteTemplate(&out, "base", map[string]interface{}{
+        "Page": "containers",
+        "Containers": containerInfo,
+    })
+
+    fmt.Fprintf(w, string(out.Bytes()))
+}
+
 // ContainerHandler handles requests for /container/HOST:NAME
 func ContainerHandler(w http.ResponseWriter, r *http.Request) {
     w.Header().Set("Content-Type", "text/html")

@@ -10,7 +10,7 @@
     </thead>
     <tbody>
         {{range .Containers}}
-        <tr class="container" id="{{.Host}}:{{.Container.Name}}">
+        <tr class="containerRow" id="{{.Host}}:{{.Container.Name}}">
             <td>{{.Host}}</td>
             <td>{{.Container.Name}}</td>
             <td>
@@ -46,7 +46,7 @@ function newContainerClick(e) {
 }
 
 (function() {
-    var rows = document.querySelectorAll(".container");
+    var rows = document.querySelectorAll(".containerRow");
     for ( var i = 0; i < rows.length; i++ ) {
         rows[i].addEventListener("click", containerRowClick);
     }

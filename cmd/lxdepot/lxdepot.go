@@ -57,8 +57,9 @@ func main() {
 
     // Setup our routing
     handlers.AddRoute("/containers$", handlers.ContainerListHandler)
+    handlers.AddRoute("/containers/.*$", handlers.ContainerHostListHandler)
     handlers.AddRoute("/container/new$", handlers.NewContainerHandler)
-    handlers.AddRoute("/container/.*", handlers.ContainerHandler)
+    handlers.AddRoute("/container/.*$", handlers.ContainerHandler)
     handlers.AddRoute("/images$", handlers.ImageListHandler)
     handlers.AddRoute("/hosts$", handlers.HostListHandler)
     handlers.AddRoute("/ws$", ws.Handler)
