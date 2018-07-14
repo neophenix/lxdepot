@@ -1,0 +1,31 @@
+{{define "content"}}
+<table border=0>
+    <thead>
+        <th>Host</th>
+        <th>Aliases</th>
+        <th>Arch</th>
+        <th>Fingerprint</th>
+    </thead>
+    <tbody>
+        {{range .Images}}
+        <tr>
+            <td>{{.Host}}</td>
+            <td>
+                {{range .Aliases}}
+                    {{.Name}}
+                {{end}}
+            </td>
+            <td>{{.Architecture}}</td>
+            <td>{{.Fingerprint}}</td>
+        </tr>
+        {{end}}
+    </tbody>
+</table>
+{{end}}
+
+{{define "js"}}
+{{end}}
+
+
+{{define "pagebtn"}}
+{{end}}

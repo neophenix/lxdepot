@@ -1,0 +1,62 @@
+{{define "content"}}
+<table border=0>
+    <thead>
+        <th>Host</th>
+        <th>Name</th>
+        <th>IP Address</th>
+        <th>CPU</th>
+        <th>Memory</th>
+        <th>Status</th>
+    </thead>
+    <tbody>
+        {{range .Containers}}
+        <tr class="container" id="{{.Host}}:{{.Container.Name}}">
+            <td>{{.Host}}</td>
+            <td>{{.Container.Name}}</td>
+            <td>
+            {{range $iface, $info := .State.Network}}
+                {{if (ne $iface "lo")}}
+                    {{range $info.Addresses}}
+                        {{if (eq .Family "inet")}}
+                            {{.Address}}<br/>
+                        {{end}}
+                    {{end}}
+                {{end}}
+            {{end}}
+            </td>
+            <td>{{printf "%.02f" (index .Usage "cpu")}}%%</td>
+            <td>{{MakeIntBytesMoreHuman .State.Memory.Usage}}</td>
+            <td>{{.Container.Status}}</td>
+        </tr>
+        {{end}}
+    </tbody>
+</table>
+{{end}}
+
+{{define "js"}}
+<script>
+function containerRowClick(e) {
+    window.location = "/container/" + this.id;
+    e.stopPropogation();
+}
+
+function newContainerClick(e) {
+    window.location = "/container/new";
+    e.stopPropogation();
+}
+
+(function() {
+    var rows = document.querySelectorAll(".container");
+    for ( var i = 0; i < rows.length; i++ ) {
+        rows[i].addEventListener("click", containerRowClick);
+    }
+
+    document.getElementById("newContBtn").addEventListener("click", newContainerClick);
+})();
+</script>
+{{end}}
+
+
+{{define "pagebtn"}}
+<button class="create" id="newContBtn">New Container</button>
+{{end}}

@@ -1,0 +1,87 @@
+{{define "content"}}
+<table border=0>
+    <tbody>
+        <tr>
+            <td>Name</td>
+            <td>{{.Container.Container.Name}}</td>
+        </tr>
+        <tr>
+            <td>IP Address</td>
+            <td>
+            {{range $iface, $info := .Container.State.Network}}
+                {{if (ne $iface "lo")}}
+                    {{range $info.Addresses}}
+                        {{if (eq .Family "inet")}}
+                            {{.Address}}<br/>
+                        {{end}}
+                    {{end}}
+                {{end}}
+            {{end}}
+            </td>
+        </tr>
+        <tr>
+            <td>Host</td>
+            <td>{{.Container.Host}} ({{.Host.Name}})</td>
+        </tr>
+        <tr>
+            <td>Image</td>
+            <td>{{index .Container.Container.ContainerPut.Config "image.description"}}</td>
+        </tr>
+        <tr>
+            <td>CPU</td>
+            <td>{{printf "%.02f" (index .Container.Usage "cpu")}}%%</td>
+        </tr>
+        <tr>
+            <td>Memory</td>
+            <td>{{MakeIntBytesMoreHuman .Container.State.Memory.Usage}}</td>
+        </tr>
+        <tr>
+            <td>Status</td>
+            <td>{{.Container.Container.Status}}</td>
+        </tr>
+    </tbody>
+</table>
+{{if ne (index .Container.Container.ExpandedConfig "user.lxdepot_lock") "true"}}
+    <div class="field">
+        {{if eq .Container.Container.Status "Stopped"}}
+            <button id="startBtn">Start</button>
+        {{end}}
+        {{if eq .Container.Container.Status "Running"}}
+            <button id="stopBtn">Stop</button>
+        {{end}}
+        <button id="deleteBtn">Delete</button>
+    </div>
+{{end}}
+{{end}}
+
+{{define "js"}}
+<script>
+var data = {
+    name: "{{.Container.Container.Name}}",
+    host: "{{.Container.Host}}"
+};
+
+(function() {
+    var startBtn = document.getElementById("startBtn");
+    if (startBtn !== null) {
+        startBtn.addEventListener("click", function(e) {
+            sendWSData("start", data);
+        });
+    }
+
+    var stopBtn = document.getElementById("stopBtn");
+    if (stopBtn !== null) {
+        stopBtn.addEventListener("click", function(e) {
+            sendWSData("stop", data);
+        });
+    }
+
+    document.getElementById("deleteBtn").addEventListener("click", function(e) {
+        sendWSData("delete", data);
+    });
+})();
+</script>
+{{end}}
+
+{{define "pagebtn"}}
+{{end}}

@@ -1,0 +1,90 @@
+{{define "base"}}
+<html>
+<head>
+<link rel="stylesheet" href="/static/css/main.css">
+</head>
+<body>
+    <div id="page-container">
+        <div id="header">
+            <span id="proj-name"><a href="/">LXDepot</a></span>
+            <span id="page-btn">{{template "pagebtn" .}}</span>
+        </div>
+        <div id="menu">
+            <ul>
+                <li><a href="/containers"{{if eq .Page "containers"}} class="active" {{end}}>Containers</a></li>
+                <li><a href="/images"{{if eq .Page "images"}} class="active" {{end}}>Images</a></li>
+                <li><a href="/hosts"{{if eq .Page "hosts"}} class="active" {{end}}>Hosts</a></li>
+            </ul>
+        </div>
+        <div id="content">
+            {{template "content" .}}
+            <div id="panel"></div>
+        </div>
+    </div>
+</body>
+<script>
+function sendWSData(action, data) {
+    var panel = document.getElementById("panel");
+    var ws = new WebSocket("ws://"+window.location.host+"/ws");
+    var failure = false;
+    ws.onopen = function(e) {
+        showPanel();
+        ws.send(JSON.stringify({action: action, data: data}));
+    }
+    ws.onmessage = function(msg) {
+        var data = JSON.parse(msg.data);
+        if (data.Id) {
+            var msgid = document.getElementById(data.Id);
+            if (msgid == null) {
+                var d = document.createElement("div");
+                d.id = data.Id;
+
+                var m = document.createElement("span");
+                m.innerHTML = data.Message + " ... ";
+                m.className = "message";
+                d.appendChild(m);
+
+                var s = document.createElement("span");
+                d.appendChild(s);
+
+                panel.appendChild(d);
+                panel.scrollTo(0, panel.scrollHeight);
+            }
+            else {
+                if (data.Success) {
+                    msgid.children[1].className = "success";
+                }
+                else {
+                    failure = true;
+                    msgid.children[1].className = "error";
+                }
+                msgid.children[1].innerHTML = data.Message;
+            }
+        }
+
+        if (data.Redirect && data.Redirect !== "" && ! failure) {
+            window.location = data.Redirect;
+        }
+    }
+    ws.onclose = function(e) {
+        if (! failure) {
+            setTimeout(hidePanel, 3000);
+        }
+    }
+}
+
+function showPanel() {
+    var panel = document.getElementById("panel");
+    panel.style.display = "block";
+}
+
+function hidePanel() {
+    var panel = document.getElementById("panel");
+    panel.style.display = "none";
+    panel.innerHTML = "";
+}
+
+</script>
+{{template "js" .}}
+</html>
+{{end}}

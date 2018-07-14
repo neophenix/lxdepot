@@ -1,0 +1,88 @@
+# This sample config should have an example of every option available
+# if not pull requests welcome
+
+# PKI files can take two forms 
+# first is file:PATH if we see file: we will read the contents off disk
+cert: file:/path/to/client/cert/here/cert.crt
+
+# Next you can just put the contents here
+key: |
+    -----BEGIN RSA PRIVATE KEY-----
+    ...
+    -----END RSA PRIVATE KEY-----
+
+# lxdhosts is an array of the hosts we will operate against
+lxdhosts:
+      # host is the ip or hostname we will use to communicate
+    - host: 192.168.1.100
+      # name is an alias for more human consumption
+      name: mylxdhost
+      # the port that lxd listens on
+      port: 8443
+      # the server cert can be a file path or contents like our client PKI
+      cert: file:/path/to/cert/server.crt
+
+# dns lets us configure how our containers will get their IP addresses
+dns:
+    # dhcp true/false if we use DHCP then we skip third party provider DNS
+    dhcp: false
+    # what provider to use (currently we support GCP DNS)
+    provider: google
+    # provider options
+    options:
+        # DNS ttl
+        ttl: 300
+        # The zone that will be appended to our container names
+        # ex mycontainer would become mycontainer.dev.example.com
+        zone: dev.example.com
+        # the CIDR address of the network our containers will live on, we
+        # use this to lookup free addresses
+        network: 192.168.2.0/24
+        # Path to our GCP service account credentials file for adding and removing entries
+        gcp_creds_file: /path/to/creds/service_account.json
+        # our GCP project name
+        gcp_project_name: example.com:dev
+        # our GCP DNS zone name
+        gcp_zone_name: example-dev-zone
+
+# networking currently houses "files" that will be parsed through text/template and passed
+# an IP to fill out, these are then uploaded to the container after creation and before starting
+#
+# The OS, etc is current hardcorded into the create container handler
+networking:
+    centos:
+        ifcfg-eth0: |
+            DEVICE=eth0
+            ONBOOT=yes
+            BOOTPROTO=none
+            IPADDR={{.IP}}
+            NETMASK=255.255.255.0
+            GATEWAY=192.168.1.1
+            DNS1=8.8.8.8
+            DNS2=1.1.1.1
+            DOMAIN="dev.example.com"
+
+# bootstrap is a list of things we do after container start to get it into something we can use
+# this can upload files and run commands.  Steps are run sequentially
+bootstrap:
+    centos:
+          # file upload example.  a lack of local_path and a remote_path ending in / tells the system
+          # that we want to create a directory
+        - type: file
+          # perms set the permissions on the file in the container
+          perms: 0700
+          remote_path: /root/.ssh/
+
+          # this time we want to take a local file and upload its contents to the remote_path
+        - type: file
+          perms: 0600
+          local_path: /var/tmp/root_auth_keys
+          remote_path: /root/.ssh/authorized_keys
+
+          # now using a command we can do things like install a ssh server
+        - type: command
+          command: [yum, -y, install, openssh-server]
+
+          # and we can run a custom file we uploaded
+        - type: command
+          command: [/tmp/bootstrap.sh]

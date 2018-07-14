@@ -1,0 +1,54 @@
+{{define "content"}}
+<form id="new-container-form">
+    <div class="field">
+        <label for="name">Name</label>
+        <input type="text" id="name" placeholder="Container Name"/>
+    </div>
+
+    <div class="field">
+        <label for="host">Host</label>
+        <select id="host">
+            {{range .Hosts}}
+                <option value="{{.Host}}">{{.Name}}</option>
+            {{end}}
+        </select>
+    </div>
+
+    <div class="field">
+        <label for="image">OS Image</label>
+        <select id="image">
+        {{range .Images}}
+            <option value="{{(index .Aliases 0).Name}}">{{(index .Aliases 0).Name}}</option>
+        {{end}}
+        </select>
+    </div>
+
+    <div class="field">
+        <button id="createBtn">Create</button>
+    </div>
+</form>
+{{end}}
+
+{{define "js"}}
+<script>
+(function() {
+    var createBtn = document.getElementById("createBtn");
+
+    createBtn.addEventListener("click", function(e) {
+        e.preventDefault();
+
+        var data = {
+            name: document.getElementById("name").value,
+            host: document.getElementById("host").value,
+            image: document.getElementById("image").value
+        };
+
+        sendWSData("create", data);
+    });
+})();
+</script>
+{{end}}
+
+
+{{define "pagebtn"}}
+{{end}}

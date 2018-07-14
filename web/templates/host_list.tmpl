@@ -1,0 +1,24 @@
+{{define "content"}}
+<table border=0>
+    <thead>
+        <th>Host</th>
+        <th>CPUs</th>
+        <th>Memory Used / Total</th>
+    </thead>
+    <tbody>
+        {{range .Conf.LXDhosts}}
+        <tr>
+            <td>{{.Host}}</td>
+            <td>{{(index $.HostResourceMap .Host).CPU.Total}}</td>
+            <td>{{MakeBytesMoreHuman (index $.HostResourceMap .Host).Memory.Used}} / {{MakeBytesMoreHuman (index $.HostResourceMap .Host).Memory.Total}}</td>
+        </tr>
+        {{end}}
+    </tbody>
+</table>
+{{end}}
+
+{{define "js"}}
+{{end}}
+
+{{define "pagebtn"}}
+{{end}}
