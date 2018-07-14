@@ -45,4 +45,4 @@ First, this was an experiment in learning Go, so I'm sure there are a few things
 
 Secondly, everthing was initially developed for use at [Circonus](https://www.circonus.com) so perhaps some assumptions were made (like limiting to IPv4), and / or limitations in support of images or GCP DNS because that is what we use.
 
-Last, tests ... haven't figured that part out yet.  Same goes for code docs
+Last, tests ... haven't figured that part out yet.
