@@ -50,8 +50,11 @@ dns:
 #
 # The OS, etc is current hardcorded into the create container handler
 networking:
-    centos:
-        ifcfg-eth0: |
+    # The OS name here has to match the image.os returned by LXD for it to run
+    Centos:
+        # each network config script needs a remote path to tell lxdepot where to upload and a template
+        - remote_path: /etc/sysconfig/network-scripts/ifcfg-eth0
+          template: |
             DEVICE=eth0
             ONBOOT=yes
             BOOTPROTO=none
@@ -65,7 +68,8 @@ networking:
 # bootstrap is a list of things we do after container start to get it into something we can use
 # this can upload files and run commands.  Steps are run sequentially
 bootstrap:
-    centos:
+    # Like in networking, the OS name here has to match the image.os returned by LXD for it to run
+    Centos:
           # file upload example.  a lack of local_path and a remote_path ending in / tells the system
           # that we want to create a directory
         - type: file

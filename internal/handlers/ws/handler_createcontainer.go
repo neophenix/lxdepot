@@ -110,29 +110,31 @@ func setupContainerNetwork(conn *websocket.Conn, mt int, host string, name strin
         return
     }
 
-    // Instead of hardcoding the OSes here, once we do the next one it should just match the key in the config
-    // Right now there are a few assumptions that things will just be there, so should probably also put
-    // the path in the config and just loop over everything we find
-    if containerInfo[0].Container.ExpandedConfig["image.os"] == "Centos" {
-        var contents bytes.Buffer
-        tmpl, err := template.New("centos-ifcfg-eth0").Parse(Conf.Networking["centos"]["ifcfg-eth0"])
-        if err != nil {
-            data, _ = json.Marshal(OutgoingMessage{Id: id, Message: "failed: " + err.Error(), Success: false})
-            conn.WriteMessage(mt, data)
-            return
-        }
-        tmpl.Execute(&contents, map[string]interface{}{
-            "IP": ip,
-        })
+    // Given the OS reported by LXD, check to see if we have any networking config defined, and if so loop
+    // over that array of templates and upload each one
+    os := containerInfo[0].Container.ExpandedConfig["image.os"]
+    if networking, ok := Conf.Networking[os]; ok {
+        for _, file := range networking {
+            var contents bytes.Buffer
+            tmpl, err := template.New(file.RemotePath).Parse(file.Template)
+            if err != nil {
+                data, _ = json.Marshal(OutgoingMessage{Id: id, Message: "failed: " + err.Error(), Success: false})
+                conn.WriteMessage(mt, data)
+                return
+            }
+            tmpl.Execute(&contents, map[string]interface{}{
+                "IP": ip,
+            })
 
-        err = lxd.CreateFile(host, name, "/etc/sysconfig/network-scripts/ifcfg-eth0", 0644, contents.String())
-        if err != nil {
-            data, _ = json.Marshal(OutgoingMessage{Id: id, Message: "failed: " + err.Error(), Success: false})
+            err = lxd.CreateFile(host, name, file.RemotePath, 0644, contents.String())
+            if err != nil {
+                data, _ = json.Marshal(OutgoingMessage{Id: id, Message: "failed: " + err.Error(), Success: false})
+                conn.WriteMessage(mt, data)
+                return
+            }
+            data, _ = json.Marshal(OutgoingMessage{Id: id, Message: "done", Success: true})
             conn.WriteMessage(mt, data)
-            return
         }
-        data, _ = json.Marshal(OutgoingMessage{Id: id, Message: "done", Success: true})
-        conn.WriteMessage(mt, data)
     }
 }
 
@@ -153,9 +155,10 @@ func bootstrapContainer(conn *websocket.Conn, mt int, host string, name string) 
     data, _ = json.Marshal(OutgoingMessage{Id: id, Message: "done", Success: true})
     conn.WriteMessage(mt, data)
 
-    // Again like in the network setup we should just match up the config key name with the OS
-    if containerInfo[0].Container.ExpandedConfig["image.os"] == "Centos" {
-        for _, step := range Conf.Bootstrap["centos"] {
+    // if we have a bootstrap section for this OS, run it
+    os := containerInfo[0].Container.ExpandedConfig["image.os"]
+    if bootstrap, ok := Conf.Bootstrap[os]; ok {
+        for _, step := range bootstrap {
             // depending on the type, call the appropriate helper
             if step.Type == "file" {
                 err = bootstrapCreateFile(conn, mt, host, name, step)

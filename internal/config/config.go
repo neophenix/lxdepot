@@ -36,13 +36,18 @@ type FileOrCommand struct {
     Command []string `yaml:"command"`       // for Type=command, the command broken apart like ["yum", "-y", "install", "foo"]
 }
 
+type NetworkingConfig struct {
+    RemotePath string   `yaml:"remote_path"`    // path of the file in the container
+    Template string     `yaml:"template"`       // text/template parsable version of the file
+}
+
 // The main config structure mostly pulling together the above items, also holds our client PKI
 type Config struct {
     Cert string `yaml:"cert"`               // client cert, which can either be the cert contents or file:/path/here that we will read in later
     Key string `yaml:"key"`                 // client key, same as cert, contents or file:/path/here
     LXDhosts []*LXDhost `yaml:"lxdhosts"`   // array of all the hosts we will operate on
     DNS DNS `yaml:"dns"`                    // DNS settings
-    Networking map[string]map[string]string `yaml:"networking"` // Right now a map to access network file templates, like ifcfg-eth0
+    Networking map[string][]NetworkingConfig `yaml:"networking"` // map of OS -> network template files
     Bootstrap map[string][]FileOrCommand `yaml:"bootstrap"`     // map to the OS type, and then an array of things to do
 }
 
