@@ -82,6 +82,10 @@ func Handler(w http.ResponseWriter, r *http.Request) {
                 DeleteContainerHandler(conn, mt, msg)
                 data, _ := json.Marshal(OutgoingMessage{Redirect: "/containers"})
                 conn.WriteMessage(mt, data)
+            case "move":
+                MoveContainerHandler(conn, mt, msg)
+                data, _ := json.Marshal(OutgoingMessage{Redirect: "/container/" + msg.Data["host"] + ":" + msg.Data["name"]})
+                conn.WriteMessage(mt, data)
             case "playbook":
                 ContainerPlaybookHandler(conn, mt, msg)
             default:
@@ -90,6 +94,45 @@ func Handler(w http.ResponseWriter, r *http.Request) {
                 conn.WriteMessage(mt, data)
         }
     }
+}
+
+// BootstrapContainer loops over all the FileOrCommand objects in the bootstrap section of the config
+// and performs each item sequentially
+func BootstrapContainer(conn *websocket.Conn, mt int, host string, name string) error {
+    id := time.Now().UnixNano()
+    data, _ := json.Marshal(OutgoingMessage{Id: id, Message: "Getting container state", Success: true})
+    conn.WriteMessage(mt, data)
+
+    // Get the container state again, should probably just grab this once but for now lets be expensive
+    containerInfo, err := lxd.GetContainers(host, name, true)
+    if err != nil {
+        data, _ = json.Marshal(OutgoingMessage{Id: id, Message: "failed: " + err.Error(), Success: false})
+        conn.WriteMessage(mt, data)
+        return err
+    }
+    data, _ = json.Marshal(OutgoingMessage{Id: id, Message: "done", Success: true})
+    conn.WriteMessage(mt, data)
+
+    // if we have a bootstrap section for this OS, run it
+    os := containerInfo[0].Container.ExpandedConfig["image.os"]
+    if bootstrap, ok := Conf.Bootstrap[os]; ok {
+        for _, step := range bootstrap {
+            // depending on the type, call the appropriate helper
+            if step.Type == "file" {
+                err = ContainerCreateFile(conn, mt, host, name, step)
+                if err != nil {
+                    return err
+                }
+            } else if step.Type == "command" {
+                err = ContainerExecCommand(conn, mt, host, name, step)
+                if err != nil {
+                    return err
+                }
+            }
+        }
+    }
+
+    return nil
 }
 
 // ContainerCreateFile operates on a Type = file bootstrap / playbook step.

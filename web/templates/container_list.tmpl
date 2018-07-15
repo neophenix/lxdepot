@@ -10,8 +10,8 @@
     </thead>
     <tbody>
         {{range .Containers}}
-        <tr class="containerRow" id="{{.Host}}:{{.Container.Name}}">
-            <td>{{.Host}}</td>
+        <tr class="containerRow" id="{{.Host.Host}}:{{.Container.Name}}">
+            <td>{{.Host.Name}}</td>
             <td>{{.Container.Name}}</td>
             <td>
             {{range $iface, $info := .State.Network}}

@@ -21,7 +21,27 @@
         </tr>
         <tr>
             <td>Host</td>
-            <td>{{.Container.Host}} ({{.Host.Name}})</td>
+            {{if and 0 (ge (len .Conf.LXDhosts) 1) (ne (index .Container.Container.ExpandedConfig "user.lxdepot_lock") "true")}}
+            <!-- Yes the 0 here is intentional to hide the move button -->
+                <td>
+                    <select size="1" id="hostSelect">
+                    {{range .Conf.LXDhosts}}
+                        {{if eq .Host $.Container.Host.Host}}
+                            <option value="{{.Host}}" selected>{{.Name}}</option>
+                        {{else}}
+                            <option value="{{.Host}}">{{.Name}}</option>
+                        {{end}}
+                    {{end}}
+                    </select>
+                    <button id="moveBtn">Move Container</button>
+                </td>
+            {{else}}
+                {{range .Conf.LXDhosts}}
+                    {{if eq .Host $.Container.Host.Host}}
+                        <td>{{.Name}}</td>
+                    {{end}}
+                {{end}}
+            {{end}}
         </tr>
         <tr>
             <td>Image</td>
@@ -73,7 +93,7 @@
 <script>
 var data = {
     name: "{{.Container.Container.Name}}",
-    host: "{{.Container.Host}}"
+    host: "{{.Container.Host.Host}}"
 };
 
 (function() {
@@ -91,11 +111,23 @@ var data = {
         });
     }
 
+    var moveBtn = document.getElementById("moveBtn");
+    if (moveBtn !== null) {
+        moveBtn.addEventListener("click", function(e) {
+            var tmp = data;
+            tmp.dst_host = document.getElementById("hostSelect").value;
+            if (tmp.dst_host !== tmp.host) {
+                sendWSData("move", tmp);
+            }
+        });
+    }
+
     var playbookBtn = document.getElementById("playbookBtn");
     if (playbookBtn !== null) {
         playbookBtn.addEventListener("click", function(e) {
-            data.playbook = document.getElementById("playbook").value;
-            sendWSData("playbook", data);
+            var tmp = data;
+            tmp.playbook = document.getElementById("playbook").value;
+            sendWSData("playbook", tmp);
         });
     }
 

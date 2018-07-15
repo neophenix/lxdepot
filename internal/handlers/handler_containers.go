@@ -7,7 +7,6 @@ import(
     "regexp"
     "net/http"
     "github.com/neophenix/lxdepot/internal/lxd"
-    "github.com/neophenix/lxdepot/internal/config"
 )
 
 // ContainerListHandler handles requests for /containers
@@ -105,22 +104,18 @@ func ContainerHandler(w http.ResponseWriter, r *http.Request) {
         playbooks = append(playbooks, "bootstrap")
     }
 
-    var host *config.LXDhost
-    for _, lxdh := range Conf.LXDhosts {
-        if lxdh.Host == containerInfo[0].Host {
-            host = lxdh
-        }
-    }
-
     tmpl := readTemplate("container.tmpl")
 
     var out bytes.Buffer
-    tmpl.ExecuteTemplate(&out, "base", map[string]interface{}{
+    err = tmpl.ExecuteTemplate(&out, "base", map[string]interface{}{
         "Page": "containers",
-        "Host": host,
+        "Conf": Conf,
         "Container": containerInfo[0],
         "Playbooks": playbooks,
     })
+    if err != nil {
+        log.Printf("%v\n", err.Error())
+    }
 
     fmt.Fprintf(w, string(out.Bytes()))
 }

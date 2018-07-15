@@ -28,15 +28,15 @@ func HostListHandler(w http.ResponseWriter, r *http.Request) {
     // Check the status of each container and increment the counter, if we haven't
     // seen this host before make the map we need
     for _, container := range containerInfo {
-        if hostContainerInfo[container.Host] == nil {
-            hostContainerInfo[container.Host] = make(map[string]int)
+        if hostContainerInfo[container.Host.Host] == nil {
+            hostContainerInfo[container.Host.Host] = make(map[string]int)
         }
-        hostContainerInfo[container.Host]["total"] += 1
+        hostContainerInfo[container.Host.Host]["total"] += 1
 
         if container.Container.Status == "Running" {
-            hostContainerInfo[container.Host]["running"] += 1
+            hostContainerInfo[container.Host.Host]["running"] += 1
         } else {
-            hostContainerInfo[container.Host]["stopped"] += 1
+            hostContainerInfo[container.Host.Host]["stopped"] += 1
         }
     }
 

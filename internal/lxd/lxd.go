@@ -3,6 +3,7 @@ package lxd
 
 import(
     "os"
+    "fmt"
     "log"
     "time"
     "math"
@@ -21,7 +22,7 @@ var lxdConnections = make(map[string]lxd.ContainerServer)
 
 // ContainerInfo is a conversion / grouping of useful container information as returned from the lxd client
 type ContainerInfo struct {
-    Host string                 // Host is the LXD server hostname
+    Host *config.LXDhost        // Host details
     Container api.Container     // Container details returned from lxd.GetContainers
     State *api.ContainerState   // Container state from lxd.GetContainerState
     Usage map[string]float64    // place to store usge conversions, like CPU usage
@@ -29,10 +30,16 @@ type ContainerInfo struct {
 
 // ImageInfo like above is a grouping of useful image information for the frontend
 type ImageInfo struct {
-    Host string                 // LXD server hostname
+    Host *config.LXDhost        // Host details
     Aliases []api.ImageAlias    // list of aliases this image goes by
     Architecture string         // x86_64, etc
     Fingerprint string          // fingerprint hash of the image for comparison
+}
+
+// HostResourceInfo is a group of Host and Resources as returned by lxd
+type HostResourceInfo struct {
+    Host *config.LXDhost
+    Resources *api.Resources
 }
 
 // DiscardCloser is a WriteCloser that just discards data.  When we exec commands on a container
@@ -82,7 +89,7 @@ func GetContainers(host string, name string, getState bool) ([]ContainerInfo, er
                     }
 
                     tmp := ContainerInfo{
-                        Host: lxdh.Host,
+                        Host: lxdh,
                         Container: container,
                         State: state,
                         Usage: make(map[string]float64),
@@ -137,7 +144,7 @@ func GetImages(host string) ([]ImageInfo, error) {
 
             for _, i := range imgs {
                 tmp := ImageInfo{
-                    Host: lxdh.Host,
+                    Host: lxdh,
                     Aliases: i.Aliases,
                     Architecture: i.Architecture,
                     Fingerprint: i.Fingerprint,
@@ -158,9 +165,9 @@ func CreateContainer(host string, name string, image string) error {
         return err
     }
 
-    // We are going to graph a list of containers first to make sure someone isn't trying to create
-    // a duplicate name.  At some point we might consider adding a "fake cluster" flag to prevent
-    // the same name across any host, which will make moving them among hosts possible
+    // We are going to grab a list of containers first to make sure someone isn't trying to create a duplicate name.
+    // Look at every host as we might want to move the container later, and you can't do that if there is already that
+    // name on a host, so our list of managed hosts is like a fake cluster
     containerInfo, err := GetContainers("", "", false)
     if err != nil {
         return err
@@ -169,7 +176,7 @@ func CreateContainer(host string, name string, image string) error {
     if len(containerInfo) > 0 {
         for _, c := range containerInfo {
             if c.Container.Name == name {
-                return errors.New("container already exists")
+                return errors.New("container already exists on " + c.Host.Name)
             }
         }
     }
@@ -205,14 +212,14 @@ func StartContainer(host string, name string) error {
     }
 
     // Grab container info to make sure our container isn't already running
-    containerInfo, err := GetContainers(host, name, true)
+    containerInfo, err := GetContainers(host, name, false)
     if err != nil {
         return err
     }
 
     if len(containerInfo) > 0 {
         for _, c := range containerInfo {
-            if c.Container.Name == name && c.State.Status == "Running" {
+            if c.Container.Name == name && c.Container.Status == "Running" {
                 // our container is already running so bail
                 return nil
             }
@@ -253,14 +260,14 @@ func StopContainer(host string, name string) error {
     }
 
     // Grab container info to make sure our container is actually running
-    containerInfo, err := GetContainers(host, name, true)
+    containerInfo, err := GetContainers(host, name, false)
     if err != nil {
         return err
     }
 
     if len(containerInfo) > 0 {
         for _, c := range containerInfo {
-            if c.Container.Name == name && c.State.Status == "Stopped" {
+            if c.Container.Name == name && c.Container.Status == "Stopped" {
                 // our container is already stopped so bail
                 return nil
             }
@@ -301,7 +308,7 @@ func DeleteContainer(host string, name string) error {
     }
 
     // Get container list to make sure we actually have a container with this name
-    containerInfo, err := GetContainers(host, name, true)
+    containerInfo, err := GetContainers(host, name, false)
     if err != nil {
         return err
     }
@@ -332,8 +339,8 @@ func DeleteContainer(host string, name string) error {
 }
 
 // GetHostResources grabs (the kind of limited) info about a host, available CPU cores, Memory, ...
-func GetHostResources(host string) (map[string]*api.Resources, error) {
-    resourceHostMap := make(map[string]*api.Resources)
+func GetHostResources(host string) (map[string]HostResourceInfo, error) {
+    resourceHostMap := make(map[string]HostResourceInfo)
 
     for _, lxdh := range Conf.LXDhosts {
         if host == "" || lxdh.Host == host {
@@ -348,7 +355,10 @@ func GetHostResources(host string) (map[string]*api.Resources, error) {
                 return resourceHostMap, err
             }
 
-            resourceHostMap[lxdh.Host] = resources
+            resourceHostMap[lxdh.Host] = HostResourceInfo{
+                Host: lxdh,
+                Resources: resources,
+            }
         }
     }
 
@@ -420,6 +430,93 @@ func ExecCommand(host string, name string, command []string) error {
     }
 
     return nil
+}
+
+// MoveContainer will move (copy in lxd speak) a container from one server to another.
+func MoveContainer(src_host string, dst_host string, name string) error {
+    // copy works by first marking the container as ready for migration, then connecting to the
+    // destination and telling it to make a copy, then probably deleting from the source
+    srcconn, err := getConnection(src_host)
+    if err != nil {
+        return err
+    }
+
+    dstconn, err := getConnection(dst_host)
+    if err != nil {
+        return err
+    }
+
+    // Get container list to make sure we actually have a container with this name
+    containerInfo, err := GetContainers(src_host, name, false)
+    if err != nil {
+        return err
+    }
+
+    if len(containerInfo) > 0 {
+        for _, c := range containerInfo {
+            // don't allow remote management of anything we have locked
+            if ! IsManageable(c) {
+                return errors.New("lock flag set, remote management denied")
+            }
+        }
+    } else {
+        return errors.New("container does not exist")
+    }
+
+    // set our migration status to true
+    err = toggleMigration(srcconn, name, true)
+    if err != nil {
+        return err
+    }
+
+    // Now on the destination, try and copy it?
+    c := api.Container{
+        Name: name,
+    }
+    args := &lxd.ContainerCopyArgs{
+        Live: true,
+    }
+    op, err := dstconn.CopyContainer(srcconn, c, args)
+    if err != nil {
+        err2 := toggleMigration(srcconn, name, false)
+        if err2 != nil {
+            return fmt.Errorf("Error copying container (%v) error while unmigrating container (%v)", err, err2)
+        }
+        return err
+    }
+
+    err = op.Wait()
+    if err != nil {
+        err2 := toggleMigration(srcconn, name, false)
+        if err2 != nil {
+            return fmt.Errorf("Error copying container (%v) error while unmigrating container (%v)", err, err2)
+        }
+        return err
+    }
+
+    // And finally remove the container from the src, if this fails we aren't going to try to rollback anything
+    err = DeleteContainer(src_host, name)
+    return err
+}
+
+// toggleMigration is a helper for MoveContainer to toggle the migration flag on / off if
+// we want to move it, or then later run into an error and need to flip it back
+func toggleMigration(conn lxd.ContainerServer, name string, migrate bool) error {
+    post := api.ContainerPost{
+        Migration: migrate,
+        Live: migrate,
+    }
+
+    // like other commands, get the operation and then wait on it, just return here, later
+    // if we hit an error we probably need to try to un-migrate the thing?
+    op, err := conn.MigrateContainer(name, post)
+    if err != nil {
+        return err
+    }
+
+    // TODO : This never returns, or even makes a request to the server as far as I can see in the logs
+    err = op.Wait()
+    return err
 }
 
 // IsManageable just checks our lock flag, user.lxdepot_lock to see if it is "true" or not

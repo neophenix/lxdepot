@@ -9,9 +9,9 @@
     <tbody>
         {{range .Conf.LXDhosts}}
         <tr class="hostRow" id="{{.Host}}">
-            <td>{{.Host}}</td>
-            <td>{{(index $.HostResourceMap .Host).CPU.Total}}</td>
-            <td>{{MakeBytesMoreHuman (index $.HostResourceMap .Host).Memory.Used}} / {{MakeBytesMoreHuman (index $.HostResourceMap .Host).Memory.Total}}</td>
+            <td>{{.Name}}</td>
+            <td>{{(index $.HostResourceMap .Host).Resources.CPU.Total}}</td>
+            <td>{{MakeBytesMoreHuman (index $.HostResourceMap .Host).Resources.Memory.Used}} / {{MakeBytesMoreHuman (index $.HostResourceMap .Host).Resources.Memory.Total}}</td>
             <td>{{index (index $.HostContainerInfo .Host) "running"}} / {{index (index $.HostContainerInfo .Host) "total"}}</td>
         </tr>
         {{end}}
