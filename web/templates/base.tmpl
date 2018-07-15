@@ -34,31 +34,33 @@ function sendWSData(action, data) {
     ws.onmessage = function(msg) {
         var data = JSON.parse(msg.data);
         if (data.Id) {
-            var msgid = document.getElementById(data.Id);
-            if (msgid == null) {
-                var d = document.createElement("div");
-                d.id = data.Id;
+            var msgrow = document.getElementById(data.Id);
+
+            if (msgrow == null) {
+                msgrow = document.createElement("div");
+                msgrow.id = data.Id;
 
                 var m = document.createElement("span");
                 m.innerHTML = data.Message + " ... ";
                 m.className = "message";
-                d.appendChild(m);
+                msgrow.appendChild(m);
 
                 var s = document.createElement("span");
-                d.appendChild(s);
+                msgrow.appendChild(s);
 
-                panel.appendChild(d);
+                panel.appendChild(msgrow);
                 panel.scrollTo(0, panel.scrollHeight);
             }
             else {
                 if (data.Success) {
-                    msgid.children[1].className = "success";
+                    msgrow.children[1].className = "success";
                 }
-                else {
-                    failure = true;
-                    msgid.children[1].className = "error";
-                }
-                msgid.children[1].innerHTML = data.Message;
+                msgrow.children[1].innerHTML = data.Message;
+            }
+
+            if (!data.Success) {
+                failure = true;
+                msgrow.className = "error"
             }
         }
 
