@@ -91,6 +91,20 @@ func ContainerHandler(w http.ResponseWriter, r *http.Request) {
         return
     }
 
+    // Check to see if we have a bootstrap section and playbooks section for
+    // this OS, if we do, built a list of those items for the UI to list off
+    // to the user as options to run
+    var playbooks []string
+    os := containerInfo[0].Container.ExpandedConfig["image.os"]
+    if pbs, ok := Conf.Playbooks[os]; ok {
+        for name, _ := range pbs {
+            playbooks = append(playbooks, name)
+        }
+    }
+    if _, ok := Conf.Bootstrap[os]; ok {
+        playbooks = append(playbooks, "bootstrap")
+    }
+
     var host *config.LXDhost
     for _, lxdh := range Conf.LXDhosts {
         if lxdh.Host == containerInfo[0].Host {
@@ -105,6 +119,7 @@ func ContainerHandler(w http.ResponseWriter, r *http.Request) {
         "Page": "containers",
         "Host": host,
         "Container": containerInfo[0],
+        "Playbooks": playbooks,
     })
 
     fmt.Fprintf(w, string(out.Bytes()))

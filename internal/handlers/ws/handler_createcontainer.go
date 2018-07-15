@@ -3,29 +3,17 @@ package ws
 import(
     "time"
     "bytes"
-    "strings"
-    "io/ioutil"
     "text/template"
     "encoding/json"
     "github.com/gorilla/websocket"
     "github.com/neophenix/lxdepot/internal/lxd"
     "github.com/neophenix/lxdepot/internal/dns"
-    "github.com/neophenix/lxdepot/internal/config"
 )
-
-// ContainerBootstrapHandler calls bootstrapContainer to bootstrap an already
-// running container. Unused at the moment on the UI
-func ContainerBootstrapHandler(conn *websocket.Conn, mt int, msg IncomingMessage) {
-    err := bootstrapContainer(conn, mt, msg.Data["host"], msg.Data["name"])
-    if err != nil {
-        return
-    }
-}
 
 // CreateContainerHandler creates the container on our host, then if we are using a 3rd
 // party DNS gets an A record from there.
 // It then uploads the appropriate network config file to the container before starting it by calling setupContainerNetwork
-// Finally if any bootstrapping configuration is set, it to perform that by calling bootstrapContainer.
+// Finally if any bootstrapping configuration is set, it to perform that by calling BootstrapContainer.
 func CreateContainerHandler(conn *websocket.Conn, mt int, msg IncomingMessage) {
     // Create the container
     // -------------------------
@@ -87,7 +75,7 @@ func CreateContainerHandler(conn *websocket.Conn, mt int, msg IncomingMessage) {
     data, _ = json.Marshal(OutgoingMessage{Id: id, Message: "done", Success: true})
     conn.WriteMessage(mt, data)
 
-    err = bootstrapContainer(conn, mt, msg.Data["host"], msg.Data["name"])
+    err = BootstrapContainer(conn, mt, msg.Data["host"], msg.Data["name"])
     if err != nil {
         return
     }
@@ -138,9 +126,9 @@ func setupContainerNetwork(conn *websocket.Conn, mt int, host string, name strin
     }
 }
 
-// bootstrapContainer loops over all the FileOrCommand objects in the bootstrap section of the config
+// BootstrapContainer loops over all the FileOrCommand objects in the bootstrap section of the config
 // and performs each item sequentially
-func bootstrapContainer(conn *websocket.Conn, mt int, host string, name string) error {
+func BootstrapContainer(conn *websocket.Conn, mt int, host string, name string) error {
     id := time.Now().UnixNano()
     data, _ := json.Marshal(OutgoingMessage{Id: id, Message: "Getting container state", Success: true})
     conn.WriteMessage(mt, data)
@@ -161,12 +149,12 @@ func bootstrapContainer(conn *websocket.Conn, mt int, host string, name string) 
         for _, step := range bootstrap {
             // depending on the type, call the appropriate helper
             if step.Type == "file" {
-                err = bootstrapCreateFile(conn, mt, host, name, step)
+                err = ContainerCreateFile(conn, mt, host, name, step)
                 if err != nil {
                     return err
                 }
             } else if step.Type == "command" {
-                err = bootstrapExecCommand(conn, mt, host, name, step)
+                err = ContainerExecCommand(conn, mt, host, name, step)
                 if err != nil {
                     return err
                 }
@@ -174,55 +162,5 @@ func bootstrapContainer(conn *websocket.Conn, mt int, host string, name string) 
         }
     }
 
-    return nil
-}
-
-// bootstrapCreateFile operates on a Type = file bootstrap step.
-// If there is a local_path, it reads the contents of that file from disk.
-// The contents are then sent to the lxd.CreateFile with the path on the container and permissions to "do the right thing"
-func bootstrapCreateFile(conn *websocket.Conn, mt int, host string, name string, info config.FileOrCommand) error {
-    id := time.Now().UnixNano()
-    data, _ := json.Marshal(OutgoingMessage{Id: id, Message: "Creating " + info.RemotePath, Success: true})
-    conn.WriteMessage(mt, data)
-
-    var contents []byte
-    var err error
-    if info.LocalPath != "" {
-        contents, err = ioutil.ReadFile(info.LocalPath)
-        if err != nil {
-            data, _ = json.Marshal(OutgoingMessage{Id: id, Message: "failed: " + err.Error(), Success: false})
-            conn.WriteMessage(mt, data)
-            return err
-        }
-    }
-
-    err = lxd.CreateFile(host, name, info.RemotePath, info.Perms, string(contents))
-    if err != nil {
-        data, _ = json.Marshal(OutgoingMessage{Id: id, Message: "failed: " + err.Error(), Success: false})
-        conn.WriteMessage(mt, data)
-        return err
-    }
-
-    data, _ = json.Marshal(OutgoingMessage{Id: id, Message: "done", Success: true})
-    conn.WriteMessage(mt, data)
-    return nil
-}
-
-// bootstrapExecCommand operates on a Type = command bootstrap step.
-// This is really just a wrapper around lxd.ExecCommand
-func bootstrapExecCommand(conn *websocket.Conn, mt int, host string, name string, info config.FileOrCommand) error {
-    id := time.Now().UnixNano()
-    data, _ := json.Marshal(OutgoingMessage{Id: id, Message: "Executing " + strings.Join(info.Command, " "), Success: true})
-    conn.WriteMessage(mt, data)
-
-    err := lxd.ExecCommand(host, name, info.Command)
-    if err != nil {
-        data, _ = json.Marshal(OutgoingMessage{Id: id, Message: "failed: " + err.Error(), Success: false})
-        conn.WriteMessage(mt, data)
-        return err
-    }
-
-    data, _ = json.Marshal(OutgoingMessage{Id: id, Message: "done", Success: true})
-    conn.WriteMessage(mt, data)
     return nil
 }

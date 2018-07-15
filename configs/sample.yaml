@@ -90,3 +90,14 @@ bootstrap:
           # and we can run a custom file we uploaded
         - type: command
           command: [/tmp/bootstrap.sh]
+
+# playbooks is a section to define anything else users might want to run on a container.
+# this would be things like, installing the right packages for a dev environment
+playbooks:
+    # Like above, the OS name here has to match the image.os returned by LXD for it to run
+    Centos:
+        # next we have a name of the playbook that your users would understand
+        setupdev:
+            # each section here follows the same format as bootstrap
+            - type: command
+              command: [yum, -y, install, golang]

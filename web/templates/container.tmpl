@@ -39,6 +39,21 @@
             <td>Status</td>
             <td>{{.Container.Container.Status}}</td>
         </tr>
+        {{if ne (index .Container.Container.ExpandedConfig "user.lxdepot_lock") "true"}}
+            {{if .Playbooks}}
+                <tr>
+                    <td>Playbooks</td>
+                    <td>
+                        <select size="1" id="playbook">
+                        {{range .Playbooks}}
+                            <option value="{{.}}">{{.}}</option>
+                        {{end}}
+                        </select>
+                        <button id="playbookBtn">Run Playbook</button>
+                    </td>
+                </tr>
+            {{end}}
+        {{end}}
     </tbody>
 </table>
 {{if ne (index .Container.Container.ExpandedConfig "user.lxdepot_lock") "true"}}
@@ -73,6 +88,14 @@ var data = {
     if (stopBtn !== null) {
         stopBtn.addEventListener("click", function(e) {
             sendWSData("stop", data);
+        });
+    }
+
+    var playbookBtn = document.getElementById("playbookBtn");
+    if (playbookBtn !== null) {
+        playbookBtn.addEventListener("click", function(e) {
+            data.playbook = document.getElementById("playbook").value;
+            sendWSData("playbook", data);
         });
     }
 

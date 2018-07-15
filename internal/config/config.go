@@ -49,6 +49,7 @@ type Config struct {
     DNS DNS `yaml:"dns"`                    // DNS settings
     Networking map[string][]NetworkingConfig `yaml:"networking"` // map of OS -> network template files
     Bootstrap map[string][]FileOrCommand `yaml:"bootstrap"`     // map to the OS type, and then an array of things to do
+    Playbooks map[string]map[string][]FileOrCommand `yaml:"playbooks"` // map of OS -> playbook name -> list of things to do
 }
 
 // ParseConfig is the only function that external users need to know about.

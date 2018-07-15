@@ -218,7 +218,7 @@ func StartContainer(host string, name string) error {
             }
 
             // don't allow remote management of anything we have locked
-            if c.Container.ExpandedConfig["user.lxdepot_lock"] == "true" {
+            if ! IsManageable(c) {
                 return errors.New("lock flag set, remote management denied")
             }
         }
@@ -266,7 +266,7 @@ func StopContainer(host string, name string) error {
             }
 
             // don't allow remote management of anything we have locked
-            if c.Container.ExpandedConfig["user.lxdepot_lock"] == "true" {
+            if ! IsManageable(c) {
                 return errors.New("lock flag set, remote management denied")
             }
         }
@@ -309,7 +309,7 @@ func DeleteContainer(host string, name string) error {
     if len(containerInfo) > 0 {
         for _, c := range containerInfo {
             // don't allow remote management of anything we have locked
-            if c.Container.ExpandedConfig["user.lxdepot_lock"] == "true" {
+            if ! IsManageable(c) {
                 return errors.New("lock flag set, remote management denied")
             }
         }
@@ -420,6 +420,16 @@ func ExecCommand(host string, name string, command []string) error {
     }
 
     return nil
+}
+
+// IsManageable just checks our lock flag, user.lxdepot_lock to see if it is "true" or not
+func IsManageable(c ContainerInfo) bool {
+    // don't allow remote management of anything we have locked
+    if c.Container.ExpandedConfig["user.lxdepot_lock"] == "true" {
+        return false
+    }
+
+    return true
 }
 
 // getConnection will either return a cached connection, or reach out and make a new connection

@@ -6,10 +6,13 @@ package ws
 import(
     "log"
     "time"
-    "encoding/json"
+    "strings"
     "net/http"
+    "io/ioutil"
+    "encoding/json"
     "github.com/gorilla/websocket"
     "github.com/neophenix/lxdepot/internal/config"
+    "github.com/neophenix/lxdepot/internal/lxd"
 )
 
 // IncomingMessage is for messages from the client to us
@@ -79,14 +82,62 @@ func Handler(w http.ResponseWriter, r *http.Request) {
                 DeleteContainerHandler(conn, mt, msg)
                 data, _ := json.Marshal(OutgoingMessage{Redirect: "/containers"})
                 conn.WriteMessage(mt, data)
-            case "bootstrap":
-                ContainerBootstrapHandler(conn, mt, msg)
-                data, _ := json.Marshal(OutgoingMessage{})
-                conn.WriteMessage(mt, data)
+            case "playbook":
+                ContainerPlaybookHandler(conn, mt, msg)
             default:
                 id := time.Now().UnixNano()
                 data, _ := json.Marshal(OutgoingMessage{Id: id, Message:"Request not understood", Success: false})
                 conn.WriteMessage(mt, data)
         }
     }
+}
+
+// ContainerCreateFile operates on a Type = file bootstrap / playbook step.
+// If there is a local_path, it reads the contents of that file from disk.
+// The contents are then sent to the lxd.CreateFile with the path on the container and permissions to "do the right thing"
+func ContainerCreateFile(conn *websocket.Conn, mt int, host string, name string, info config.FileOrCommand) error {
+    id := time.Now().UnixNano()
+    data, _ := json.Marshal(OutgoingMessage{Id: id, Message: "Creating " + info.RemotePath, Success: true})
+    conn.WriteMessage(mt, data)
+
+    var contents []byte
+    var err error
+    if info.LocalPath != "" {
+        contents, err = ioutil.ReadFile(info.LocalPath)
+        if err != nil {
+            data, _ = json.Marshal(OutgoingMessage{Id: id, Message: "failed: " + err.Error(), Success: false})
+            conn.WriteMessage(mt, data)
+            return err
+        }
+    }
+
+    err = lxd.CreateFile(host, name, info.RemotePath, info.Perms, string(contents))
+    if err != nil {
+        data, _ = json.Marshal(OutgoingMessage{Id: id, Message: "failed: " + err.Error(), Success: false})
+        conn.WriteMessage(mt, data)
+        return err
+    }
+
+    data, _ = json.Marshal(OutgoingMessage{Id: id, Message: "done", Success: true})
+    conn.WriteMessage(mt, data)
+    return nil
+}
+
+// ContainerExecCommand operates on a Type = command bootstrap / playbook step.
+// This is really just a wrapper around lxd.ExecCommand
+func ContainerExecCommand(conn *websocket.Conn, mt int, host string, name string, info config.FileOrCommand) error {
+    id := time.Now().UnixNano()
+    data, _ := json.Marshal(OutgoingMessage{Id: id, Message: "Executing " + strings.Join(info.Command, " "), Success: true})
+    conn.WriteMessage(mt, data)
+
+    err := lxd.ExecCommand(host, name, info.Command)
+    if err != nil {
+        data, _ = json.Marshal(OutgoingMessage{Id: id, Message: "failed: " + err.Error(), Success: false})
+        conn.WriteMessage(mt, data)
+        return err
+    }
+
+    data, _ = json.Marshal(OutgoingMessage{Id: id, Message: "done", Success: true})
+    conn.WriteMessage(mt, data)
+    return nil
 }
