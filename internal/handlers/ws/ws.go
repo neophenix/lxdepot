@@ -5,6 +5,8 @@ package ws
 
 import (
 	"encoding/json"
+	"errors"
+	"fmt"
 	"github.com/gorilla/websocket"
 	"github.com/neophenix/lxdepot/internal/config"
 	"github.com/neophenix/lxdepot/internal/lxd"
@@ -173,11 +175,36 @@ func ContainerExecCommand(conn *websocket.Conn, mt int, host string, name string
 	data, _ := json.Marshal(OutgoingMessage{Id: id, Message: "Executing " + strings.Join(info.Command, " "), Success: true})
 	conn.WriteMessage(mt, data)
 
-	err := lxd.ExecCommand(host, name, info.Command)
-	if err != nil {
-		data, _ = json.Marshal(OutgoingMessage{Id: id, Message: "failed: " + err.Error(), Success: false})
+	success := false
+	attempt := 1
+	var rv float64
+	var err error
+	for !success && attempt <= 2 {
+		rv, err = lxd.ExecCommand(host, name, info.Command)
+		if err != nil {
+			data, _ = json.Marshal(OutgoingMessage{Id: id, Message: "failed: " + err.Error(), Success: false})
+			conn.WriteMessage(mt, data)
+			return err
+		}
+
+		// check our return value for real ok (0) or acceptable ok (info.OkReturnValues)
+		if rv == 0 {
+			success = true
+		} else {
+			for _, okrv := range info.OkReturnValues {
+				if rv == okrv {
+					success = true
+				}
+			}
+		}
+
+		attempt += 1
+	}
+
+	if !success {
+		data, _ = json.Marshal(OutgoingMessage{Id: id, Message: fmt.Sprintf("failed with return value: %v", rv), Success: false})
 		conn.WriteMessage(mt, data)
-		return err
+		return errors.New("command failed")
 	}
 
 	data, _ = json.Marshal(OutgoingMessage{Id: id, Message: "done", Success: true})

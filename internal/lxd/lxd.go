@@ -396,11 +396,12 @@ func CreateFile(host string, name string, path string, mode int, contents string
 
 // ExecCommand runs a command on the container and discards the output.  As further comments state,
 // there doesn't seem to be an accurate return of success or not, need to look for a status code return.
-// If a way is found, likely will stop discarding output and return that to the UI
-func ExecCommand(host string, name string, command []string) error {
+// If a way is found, likely will stop discarding output and return that to the UI.  -1 is our return if
+// something outside the command went wrong
+func ExecCommand(host string, name string, command []string) (float64, error) {
 	conn, err := getConnection(host)
 	if err != nil {
-		return err
+		return -1, err
 	}
 
 	cmd := api.ContainerExecPost{
@@ -421,17 +422,23 @@ func ExecCommand(host string, name string, command []string) error {
 	// schedule the command to execute
 	op, err := conn.ExecContainer(name, cmd, &args)
 	if err != nil {
-		return err
+		return -1, err
 	}
 
-	// wait for the create to finish, in testing even if there is an error in lxc this
-	// doesn't report it, so ... yeah
+	// wait for the command to finish
 	err = op.Wait()
 	if err != nil {
-		return err
+		return -1, err
 	}
 
-	return nil
+	// Get the status of the command and convert the return value to a number
+	status := op.Get()
+	statuscode, ok := status.Metadata["return"].(float64)
+	if !ok {
+		return -1, errors.New("failed to parse return value")
+	}
+
+	return statuscode, nil
 }
 
 // MoveContainer will move (copy in lxd speak) a container from one server to another.
@@ -516,7 +523,9 @@ func toggleMigration(conn lxd.ContainerServer, name string, migrate bool) error 
 		return err
 	}
 
-	// TODO : This never returns, or even makes a request to the server as far as I can see in the logs
+	// TODO : OK, so the reason this doesn't return is once you kick off the migrate you need to
+	//        Then make a copy request to run at the same time.  In experimenting with this I keep
+	//        getting an error "Architecture isn't supported:" which I can't find any info about
 	err = op.Wait()
 	return err
 }

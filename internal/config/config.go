@@ -29,11 +29,12 @@ type DNS struct {
 // For bootstrapping or other setup, used as an array of sequential "things to do"
 // file will upload a file to the container, command will run a command on it
 type FileOrCommand struct {
-	Type       string   `yaml:"type"`        // file or command, what we are going to do
-	Perms      int      `yaml:"perms"`       // for Type=file, the permissions of the file in the container
-	LocalPath  string   `yaml:"local_path"`  // for Type=file, the local path to the file we want to upload
-	RemotePath string   `yaml:"remote_path"` // for Type=file, where the file will live in the container
-	Command    []string `yaml:"command"`     // for Type=command, the command broken apart like ["yum", "-y", "install", "foo"]
+	Type           string    `yaml:"type"`             // file or command, what we are going to do
+	Perms          int       `yaml:"perms"`            // for Type=file, the permissions of the file in the container
+	LocalPath      string    `yaml:"local_path"`       // for Type=file, the local path to the file we want to upload
+	RemotePath     string    `yaml:"remote_path"`      // for Type=file, where the file will live in the container
+	Command        []string  `yaml:"command"`          // for Type=command, the command broken apart like ["yum", "-y", "install", "foo"]
+	OkReturnValues []float64 `yaml:"ok_return_values"` // list of return values (other than 0) we accept as ok, 0 is always acceptable
 }
 
 type NetworkingConfig struct {
