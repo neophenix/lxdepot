@@ -77,34 +77,60 @@ func GetContainers(host string, name string, getState bool) ([]ContainerInfo, er
 				return containerInfo, err
 			}
 
-			// Here wer are going to either just return the container asked for by name, and look to see if we wanted
-			// state info as well, typically we do, which could get expensive with lots of hosts or lots of containers
+			// Take the list of containers we got back and put them into our array to return, this at least ensures
+			// the ordering of hosts in the order they were specfied in the config which is something we want to be
+			// consistent with
 			for _, container := range containers {
 				if name == "" || container.Name == name {
-					var state *api.ContainerState
-					if getState {
-						state, err = GetContainerState(lxdh.Host, container.Name)
-						if err != nil {
-							log.Printf("Could not get container state from " + lxdh.Host + " for " + container.Name)
-							break
-						}
-					}
-
+					// Prepopulate a blank state in case we can't fetch it later
+					state := &api.ContainerState{}
 					tmp := ContainerInfo{
 						Host:      lxdh,
 						Container: container,
 						State:     state,
 						Usage:     make(map[string]float64),
 					}
-
-					if getState {
-						// Using a map here so the output in the html template isn't a complete pain
-						tmp.Usage["cpu"] = float64(state.CPU.Usage/1000000000) / math.Abs(time.Now().Sub(container.LastUsedAt).Seconds())
-					}
-
 					containerInfo = append(containerInfo, tmp)
 				}
 			}
+		}
+	}
+
+	// If we want to fetch state, that more expensive as its a new call out for every container.  We will loop
+	// over our newly built array and make the call in a goroutine to at least parallelize that, or make it concurrent
+    // or something of that nature, maybe this helps?
+	if getState {
+		done := make(chan int)
+		start := time.Now()
+
+		for idx, info := range containerInfo {
+			go func(info ContainerInfo, idx int) {
+				state, err := GetContainerState(info.Host.Host, info.Container.Name)
+				if err != nil {
+					log.Printf("Could not get container state from %v for %v", info.Host.Host, info.Container.Name)
+					return
+				}
+
+				// Drop the state in our array and calculate the cpu usage so we don't have to muck with that later, still not sure its right
+				containerInfo[idx].State = state
+				containerInfo[idx].Usage["cpu"] = float64(state.CPU.Usage/1000000000) / math.Abs(time.Now().Sub(info.Container.LastUsedAt).Seconds())
+				done <- idx
+			}(info, idx)
+		}
+
+		// going to allow the fetches 10s to complete, or stop when we determined we got them all because our completed count
+		// is >= the total we have
+		total := len(containerInfo)
+		completed := 0
+		now := time.Now()
+		for completed < total && now.Sub(start).Seconds() < 10 {
+			select {
+			case <-done:
+				completed += 1
+			default:
+				break
+			}
+			now = time.Now()
 		}
 	}
 
