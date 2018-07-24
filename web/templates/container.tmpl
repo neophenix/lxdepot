@@ -66,18 +66,20 @@
             <td>{{.Container.Container.Status}}</td>
         </tr>
         {{if ne (index .Container.Container.ExpandedConfig "user.lxdepot_lock") "true"}}
-            {{if .Playbooks}}
-                <tr>
-                    <td>Playbooks</td>
-                    <td>
-                        <select size="1" id="playbook">
-                        {{range .Playbooks}}
-                            <option value="{{.}}">{{.}}</option>
-                        {{end}}
-                        </select>
-                        <button id="playbookBtn">Run Playbook</button>
-                    </td>
-                </tr>
+            {{if eq .Container.Container.Status "Running"}}
+                {{if .Playbooks}}
+                    <tr>
+                        <td>Playbooks</td>
+                        <td>
+                            <select size="1" id="playbook">
+                            {{range .Playbooks}}
+                                <option value="{{.}}">{{.}}</option>
+                            {{end}}
+                            </select>
+                            <button id="playbookBtn">Run Playbook</button>
+                        </td>
+                    </tr>
+                {{end}}
             {{end}}
         {{end}}
     </tbody>
