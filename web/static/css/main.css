@@ -119,3 +119,11 @@ input, textarea, select, button {
     background-color: red;
     color: white;
 }
+
+.small {
+    font-size: .85em;
+}
+
+.move-left {
+    margin-left: -5px;
+}

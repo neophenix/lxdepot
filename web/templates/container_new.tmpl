@@ -3,12 +3,15 @@
     <div class="field">
         <label for="name">Name</label>
         <input type="text" id="name" placeholder="Container Name"/>
+        {{if ne (index .Conf.DNS.Options "zone") ""}}
+            <span class="small move-left">.{{index .Conf.DNS.Options "zone"}}</span>
+        {{end}}
     </div>
 
     <div class="field">
         <label for="host">Host</label>
         <select id="host">
-            {{range .Hosts}}
+            {{range .Conf.LXDhosts}}
                 <option value="{{.Host}}">{{.Name}}</option>
             {{end}}
         </select>

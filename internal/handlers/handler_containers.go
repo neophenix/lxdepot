@@ -134,7 +134,7 @@ func NewContainerHandler(w http.ResponseWriter, r *http.Request) {
 	var out bytes.Buffer
 	tmpl.ExecuteTemplate(&out, "base", map[string]interface{}{
 		"Page":   "containers",
-		"Hosts":  Conf.LXDhosts,
+		"Conf":   Conf,
 		"Images": images,
 	})
 
