@@ -5,6 +5,12 @@
             <td>Name</td>
             <td>{{.Container.Container.Name}}</td>
         </tr>
+        {{if ne (index .Conf.DNS.Options "zone") ""}}
+        <tr>
+            <td>FQDN</td>
+            <td>{{.Container.Container.Name}}.{{index .Conf.DNS.Options "zone"}}</td>
+        </tr>
+        {{end}}
         <tr>
             <td>IP Address</td>
             <td>
