@@ -34,7 +34,7 @@ func ContainerPlaybookHandler(conn *websocket.Conn, mt int, msg IncomingMessage)
 		return
 	}
 
-	os := containerInfo[0].Container.ExpandedConfig["image.os"]
+	os := containerInfo[0].Container.ExpandedConfig["image.os"] + containerInfo[0].Container.ExpandedConfig["image.release"]
 	// bootstrap is a special playbook in that it has its own section of the config.  If we are asked to
 	// do this again, just call the bootstrap "handler" in handler_createcontainer
 	if msg.Data["playbook"] == "bootstrap" {

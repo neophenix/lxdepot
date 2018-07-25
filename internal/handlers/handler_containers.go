@@ -96,7 +96,7 @@ func ContainerHandler(w http.ResponseWriter, r *http.Request) {
 	// this OS, if we do, built a list of those items for the UI to list off
 	// to the user as options to run
 	var playbooks []string
-	os := containerInfo[0].Container.ExpandedConfig["image.os"]
+	os := containerInfo[0].Container.ExpandedConfig["image.os"] + containerInfo[0].Container.ExpandedConfig["image.release"]
 	if pbs, ok := Conf.Playbooks[os]; ok {
 		for name := range pbs {
 			playbooks = append(playbooks, name)

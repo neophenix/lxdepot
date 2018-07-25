@@ -50,8 +50,8 @@ dns:
 #
 # The OS, etc is current hardcorded into the create container handler
 networking:
-    # The OS name here has to match the image.os returned by LXD for it to run
-    Centos:
+    # The OS name + release here has to match the image.os returned by LXD for it to run
+    Centos7:
         # each network config script needs a remote path to tell lxdepot where to upload and a template
         - remote_path: /etc/sysconfig/network-scripts/ifcfg-eth0
           template: |
@@ -68,8 +68,8 @@ networking:
 # bootstrap is a list of things we do after container start to get it into something we can use
 # this can upload files and run commands.  Steps are run sequentially
 bootstrap:
-    # Like in networking, the OS name here has to match the image.os returned by LXD for it to run
-    Centos:
+    # Like in networking, the OS name + release here has to match the image.os returned by LXD for it to run
+    Centos7:
           # file upload example.  a lack of local_path and a remote_path ending in / tells the system
           # that we want to create a directory
         - type: file
@@ -94,8 +94,8 @@ bootstrap:
 # playbooks is a section to define anything else users might want to run on a container.
 # this would be things like, installing the right packages for a dev environment
 playbooks:
-    # Like above, the OS name here has to match the image.os returned by LXD for it to run
-    Centos:
+    # Like above, the OS name + release here has to match the image.os returned by LXD for it to run
+    Centos7:
         # next we have a name of the playbook that your users would understand
         setupdev:
             # each section here follows the same format as bootstrap
