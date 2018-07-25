@@ -31,12 +31,12 @@ func HostListHandler(w http.ResponseWriter, r *http.Request) {
 		if hostContainerInfo[container.Host.Host] == nil {
 			hostContainerInfo[container.Host.Host] = make(map[string]int)
 		}
-		hostContainerInfo[container.Host.Host]["total"] += 1
+		hostContainerInfo[container.Host.Host]["total"]++
 
 		if container.Container.Status == "Running" {
-			hostContainerInfo[container.Host.Host]["running"] += 1
+			hostContainerInfo[container.Host.Host]["running"]++
 		} else {
-			hostContainerInfo[container.Host.Host]["stopped"] += 1
+			hostContainerInfo[container.Host.Host]["stopped"]++
 		}
 	}
 

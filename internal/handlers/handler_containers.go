@@ -98,7 +98,7 @@ func ContainerHandler(w http.ResponseWriter, r *http.Request) {
 	var playbooks []string
 	os := containerInfo[0].Container.ExpandedConfig["image.os"]
 	if pbs, ok := Conf.Playbooks[os]; ok {
-		for name, _ := range pbs {
+		for name := range pbs {
 			playbooks = append(playbooks, name)
 		}
 	}

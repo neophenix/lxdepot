@@ -25,7 +25,7 @@ type IncomingMessage struct {
 
 // OutgoingMessage is from us to the UI
 type OutgoingMessage struct {
-	Id       int64  // ID to keep messages and their status together
+	ID       int64  // ID to keep messages and their status together
 	Message  string // message to show the user
 	Success  bool   // success is used to give a visual hint to the user how the command went (true = green, false = red)
 	Redirect string // If we want to suggest a redirect to another page, like back to /containers after we create a new one
@@ -37,7 +37,7 @@ var upgrader = websocket.Upgrader{
 	CheckOrigin: func(r *http.Request) bool { return true },
 }
 
-// our config from the main function
+// Conf is our main config
 var Conf *config.Config
 
 // Handler is our overall websocket router, it unmarshals the request and then sends it to
@@ -52,14 +52,14 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 	defer conn.Close()
 	for {
 		// read out message and unmarshal it, log out what it was for debugging.
-		mt, enc_msg, err := conn.ReadMessage()
+		mt, encmsg, err := conn.ReadMessage()
 		if err != nil {
 			log.Println("read:", err)
 			break
 		}
-		log.Printf("ws recv: %s\n", enc_msg)
+		log.Printf("ws recv: %s\n", encmsg)
 		var msg IncomingMessage
-		err = json.Unmarshal(enc_msg, &msg)
+		err = json.Unmarshal(encmsg, &msg)
 		if err != nil {
 			log.Println("unmarshal:", err)
 			break
@@ -92,7 +92,7 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 			ContainerPlaybookHandler(conn, mt, msg)
 		default:
 			id := time.Now().UnixNano()
-			data, _ := json.Marshal(OutgoingMessage{Id: id, Message: "Request not understood", Success: false})
+			data, _ := json.Marshal(OutgoingMessage{ID: id, Message: "Request not understood", Success: false})
 			conn.WriteMessage(mt, data)
 		}
 	}
@@ -102,17 +102,17 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 // and performs each item sequentially
 func BootstrapContainer(conn *websocket.Conn, mt int, host string, name string) error {
 	id := time.Now().UnixNano()
-	data, _ := json.Marshal(OutgoingMessage{Id: id, Message: "Getting container state", Success: true})
+	data, _ := json.Marshal(OutgoingMessage{ID: id, Message: "Getting container state", Success: true})
 	conn.WriteMessage(mt, data)
 
 	// Get the container state again, should probably just grab this once but for now lets be expensive
 	containerInfo, err := lxd.GetContainers(host, name, true)
 	if err != nil {
-		data, _ = json.Marshal(OutgoingMessage{Id: id, Message: "failed: " + err.Error(), Success: false})
+		data, _ = json.Marshal(OutgoingMessage{ID: id, Message: "failed: " + err.Error(), Success: false})
 		conn.WriteMessage(mt, data)
 		return err
 	}
-	data, _ = json.Marshal(OutgoingMessage{Id: id, Message: "done", Success: true})
+	data, _ = json.Marshal(OutgoingMessage{ID: id, Message: "done", Success: true})
 	conn.WriteMessage(mt, data)
 
 	// if we have a bootstrap section for this OS, run it
@@ -142,7 +142,7 @@ func BootstrapContainer(conn *websocket.Conn, mt int, host string, name string) 
 // The contents are then sent to the lxd.CreateFile with the path on the container and permissions to "do the right thing"
 func ContainerCreateFile(conn *websocket.Conn, mt int, host string, name string, info config.FileOrCommand) error {
 	id := time.Now().UnixNano()
-	data, _ := json.Marshal(OutgoingMessage{Id: id, Message: "Creating " + info.RemotePath, Success: true})
+	data, _ := json.Marshal(OutgoingMessage{ID: id, Message: "Creating " + info.RemotePath, Success: true})
 	conn.WriteMessage(mt, data)
 
 	var contents []byte
@@ -150,7 +150,7 @@ func ContainerCreateFile(conn *websocket.Conn, mt int, host string, name string,
 	if info.LocalPath != "" {
 		contents, err = ioutil.ReadFile(info.LocalPath)
 		if err != nil {
-			data, _ = json.Marshal(OutgoingMessage{Id: id, Message: "failed: " + err.Error(), Success: false})
+			data, _ = json.Marshal(OutgoingMessage{ID: id, Message: "failed: " + err.Error(), Success: false})
 			conn.WriteMessage(mt, data)
 			return err
 		}
@@ -158,12 +158,12 @@ func ContainerCreateFile(conn *websocket.Conn, mt int, host string, name string,
 
 	err = lxd.CreateFile(host, name, info.RemotePath, info.Perms, string(contents))
 	if err != nil {
-		data, _ = json.Marshal(OutgoingMessage{Id: id, Message: "failed: " + err.Error(), Success: false})
+		data, _ = json.Marshal(OutgoingMessage{ID: id, Message: "failed: " + err.Error(), Success: false})
 		conn.WriteMessage(mt, data)
 		return err
 	}
 
-	data, _ = json.Marshal(OutgoingMessage{Id: id, Message: "done", Success: true})
+	data, _ = json.Marshal(OutgoingMessage{ID: id, Message: "done", Success: true})
 	conn.WriteMessage(mt, data)
 	return nil
 }
@@ -172,7 +172,7 @@ func ContainerCreateFile(conn *websocket.Conn, mt int, host string, name string,
 // This is really just a wrapper around lxd.ExecCommand
 func ContainerExecCommand(conn *websocket.Conn, mt int, host string, name string, info config.FileOrCommand) error {
 	id := time.Now().UnixNano()
-	data, _ := json.Marshal(OutgoingMessage{Id: id, Message: "Executing " + strings.Join(info.Command, " "), Success: true})
+	data, _ := json.Marshal(OutgoingMessage{ID: id, Message: "Executing " + strings.Join(info.Command, " "), Success: true})
 	conn.WriteMessage(mt, data)
 
 	success := false
@@ -182,7 +182,7 @@ func ContainerExecCommand(conn *websocket.Conn, mt int, host string, name string
 	for !success && attempt <= 2 {
 		rv, err = lxd.ExecCommand(host, name, info.Command)
 		if err != nil {
-			data, _ = json.Marshal(OutgoingMessage{Id: id, Message: "failed: " + err.Error(), Success: false})
+			data, _ = json.Marshal(OutgoingMessage{ID: id, Message: "failed: " + err.Error(), Success: false})
 			conn.WriteMessage(mt, data)
 			return err
 		}
@@ -198,16 +198,16 @@ func ContainerExecCommand(conn *websocket.Conn, mt int, host string, name string
 			}
 		}
 
-		attempt += 1
+		attempt++
 	}
 
 	if !success {
-		data, _ = json.Marshal(OutgoingMessage{Id: id, Message: fmt.Sprintf("failed with return value: %v", rv), Success: false})
+		data, _ = json.Marshal(OutgoingMessage{ID: id, Message: fmt.Sprintf("failed with return value: %v", rv), Success: false})
 		conn.WriteMessage(mt, data)
 		return errors.New("command failed")
 	}
 
-	data, _ = json.Marshal(OutgoingMessage{Id: id, Message: "done", Success: true})
+	data, _ = json.Marshal(OutgoingMessage{ID: id, Message: "done", Success: true})
 	conn.WriteMessage(mt, data)
 	return nil
 }

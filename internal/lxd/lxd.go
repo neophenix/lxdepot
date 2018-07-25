@@ -15,7 +15,7 @@ import (
 	"time"
 )
 
-// config from our main function
+// Conf is our main config
 var Conf *config.Config
 
 // cache of connections to our LXD servers
@@ -126,7 +126,7 @@ func GetContainers(host string, name string, getState bool) ([]ContainerInfo, er
 		for completed < total && now.Sub(start).Seconds() < 10 {
 			select {
 			case <-done:
-				completed += 1
+				completed++
 			default:
 				break
 			}
@@ -476,21 +476,21 @@ func ExecCommand(host string, name string, command []string) (float64, error) {
 }
 
 // MoveContainer will move (copy in lxd speak) a container from one server to another.
-func MoveContainer(src_host string, dst_host string, name string) error {
+func MoveContainer(srcHost string, dstHost string, name string) error {
 	// copy works by first marking the container as ready for migration, then connecting to the
 	// destination and telling it to make a copy, then probably deleting from the source
-	srcconn, err := getConnection(src_host)
+	srcconn, err := getConnection(srcHost)
 	if err != nil {
 		return err
 	}
 
-	dstconn, err := getConnection(dst_host)
+	dstconn, err := getConnection(dstHost)
 	if err != nil {
 		return err
 	}
 
 	// Get container list to make sure we actually have a container with this name
-	containerInfo, err := GetContainers(src_host, name, false)
+	containerInfo, err := GetContainers(srcHost, name, false)
 	if err != nil {
 		return err
 	}
@@ -538,7 +538,7 @@ func MoveContainer(src_host string, dst_host string, name string) error {
 	}
 
 	// And finally remove the container from the src, if this fails we aren't going to try to rollback anything
-	err = DeleteContainer(src_host, name)
+	err = DeleteContainer(srcHost, name)
 	return err
 }
 

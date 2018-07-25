@@ -11,6 +11,7 @@ type Route struct {
 	Handler func(w http.ResponseWriter, r *http.Request) // a func pointer to call if the regex matches
 }
 
+// Routes is the array in the order we will attempt to match the route with the incoming url, first one wins
 var Routes []Route
 
 // AddRoute compiles the regex string and appends it to our route list with its handler func pointer

@@ -6,8 +6,10 @@ import (
 	"log"
 )
 
-// some settings from our main func
+// WebRoot is the path to the web templates + static files
 var WebRoot string
+
+// CacheTemplates is the setting on whether to cache the template files or read from disk each time
 var CacheTemplates bool
 
 // template cache

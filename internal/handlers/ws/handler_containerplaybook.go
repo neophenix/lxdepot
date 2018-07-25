@@ -14,7 +14,7 @@ func ContainerPlaybookHandler(conn *websocket.Conn, mt int, msg IncomingMessage)
 	containerInfo, err := lxd.GetContainers(msg.Data["host"], msg.Data["name"], false)
 	if err != nil {
 		id := time.Now().UnixNano()
-		data, _ := json.Marshal(OutgoingMessage{Id: id, Message: "failed to get container info: " + err.Error(), Success: false})
+		data, _ := json.Marshal(OutgoingMessage{ID: id, Message: "failed to get container info: " + err.Error(), Success: false})
 		conn.WriteMessage(mt, data)
 		return
 	}
@@ -23,13 +23,13 @@ func ContainerPlaybookHandler(conn *websocket.Conn, mt int, msg IncomingMessage)
 	if len(containerInfo) > 0 {
 		if !lxd.IsManageable(containerInfo[0]) {
 			id := time.Now().UnixNano()
-			data, _ := json.Marshal(OutgoingMessage{Id: id, Message: "lock flag set, remote management denied", Success: false})
+			data, _ := json.Marshal(OutgoingMessage{ID: id, Message: "lock flag set, remote management denied", Success: false})
 			conn.WriteMessage(mt, data)
 			return
 		}
 	} else {
 		id := time.Now().UnixNano()
-		data, _ := json.Marshal(OutgoingMessage{Id: id, Message: "container does not exist", Success: false})
+		data, _ := json.Marshal(OutgoingMessage{ID: id, Message: "container does not exist", Success: false})
 		conn.WriteMessage(mt, data)
 		return
 	}

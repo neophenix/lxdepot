@@ -13,7 +13,7 @@ import (
 	"time"
 )
 
-// Stores all the options we need to talk to GCP
+// GoogleDNS stores all the options we need to talk to GCP
 type GoogleDNS struct {
 	Creds   []byte // the contents of our service account json credentials file
 	Project string // the GCP project name we are operating on
@@ -26,9 +26,8 @@ type GoogleDNS struct {
 	Options map[string]string
 }
 
-// Cache of our calls to pull all the records, figure if the system is in
-// regular use its better to store these for a few minutes than make a call
-// every time
+// RrsetCache is the cache of all the recordsets, figure if the system is in
+// regular use its better to store these for a few minutes than make a call each time
 type RrsetCache struct {
 	Rrsets    []*gdns.ResourceRecordSet
 	CacheTime time.Time
@@ -36,7 +35,7 @@ type RrsetCache struct {
 
 var cache RrsetCache
 
-// NewGoogleDNS will return our GCP Dns interface
+// NewGoogleDNS will return our GCP DNS interface
 // The creds, project, and zone here are actually in the options as well, but they are important
 // enough to warrant being "top level" items
 func NewGoogleDNS(creds string, project string, zone string, options map[string]string) *GoogleDNS {
@@ -73,9 +72,8 @@ func (g *GoogleDNS) getZoneRecordSet(token string) error {
 		now := time.Now()
 		if now.Sub(cache.CacheTime).Seconds() <= 30 {
 			return nil
-		} else {
-			cache = RrsetCache{}
 		}
+		cache = RrsetCache{}
 	}
 
 	service, err := g.getDNSService()

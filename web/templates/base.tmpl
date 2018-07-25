@@ -33,12 +33,12 @@ function sendWSData(action, data) {
     }
     ws.onmessage = function(msg) {
         var data = JSON.parse(msg.data);
-        if (data.Id) {
-            var msgrow = document.getElementById(data.Id);
+        if (data.ID) {
+            var msgrow = document.getElementById(data.ID);
 
             if (msgrow == null) {
                 msgrow = document.createElement("div");
-                msgrow.id = data.Id;
+                msgrow.id = data.ID;
 
                 var m = document.createElement("span");
                 m.innerHTML = data.Message + " ... ";

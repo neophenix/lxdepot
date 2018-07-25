@@ -22,20 +22,20 @@ func DeleteContainerHandler(conn *websocket.Conn, mt int, msg IncomingMessage) {
 	// -------------------------
 	if !Conf.DNS.DHCP {
 		id := time.Now().UnixNano()
-		data, _ := json.Marshal(OutgoingMessage{Id: id, Message: "Deleting DNS entry", Success: true})
+		data, _ := json.Marshal(OutgoingMessage{ID: id, Message: "Deleting DNS entry", Success: true})
 		conn.WriteMessage(mt, data)
 
 		d := dns.New(Conf)
 		if d == nil {
-			data, _ := json.Marshal(OutgoingMessage{Id: id, Message: "failed to create DNS object for provider: " + Conf.DNS.Provider, Success: false})
+			data, _ := json.Marshal(OutgoingMessage{ID: id, Message: "failed to create DNS object for provider: " + Conf.DNS.Provider, Success: false})
 			conn.WriteMessage(mt, data)
 		} else {
 			err := d.RemoveARecord(msg.Data["name"])
 			if err != nil {
-				data, _ := json.Marshal(OutgoingMessage{Id: id, Message: "failed: " + err.Error(), Success: false})
+				data, _ := json.Marshal(OutgoingMessage{ID: id, Message: "failed: " + err.Error(), Success: false})
 				conn.WriteMessage(mt, data)
 			} else {
-				data, _ = json.Marshal(OutgoingMessage{Id: id, Message: "done", Success: true})
+				data, _ = json.Marshal(OutgoingMessage{ID: id, Message: "done", Success: true})
 				conn.WriteMessage(mt, data)
 			}
 		}
@@ -44,16 +44,16 @@ func DeleteContainerHandler(conn *websocket.Conn, mt int, msg IncomingMessage) {
 
 	// Delete the container
 	id := time.Now().UnixNano()
-	data, _ := json.Marshal(OutgoingMessage{Id: id, Message: "Deleting container", Success: true})
+	data, _ := json.Marshal(OutgoingMessage{ID: id, Message: "Deleting container", Success: true})
 	conn.WriteMessage(mt, data)
 
 	err = lxd.DeleteContainer(msg.Data["host"], msg.Data["name"])
 	if err != nil {
-		data, _ := json.Marshal(OutgoingMessage{Id: id, Message: "failed: " + err.Error(), Success: false})
+		data, _ := json.Marshal(OutgoingMessage{ID: id, Message: "failed: " + err.Error(), Success: false})
 		conn.WriteMessage(mt, data)
 		return
 	}
 
-	data, _ = json.Marshal(OutgoingMessage{Id: id, Message: "done", Success: true, Redirect: "/containers"})
+	data, _ = json.Marshal(OutgoingMessage{ID: id, Message: "done", Success: true, Redirect: "/containers"})
 	conn.WriteMessage(mt, data)
 }

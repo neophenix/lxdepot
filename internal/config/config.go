@@ -26,7 +26,7 @@ type DNS struct {
 	Options  map[string]string `yaml:"options"`  // Providers options documented at the top of a provider implementation
 }
 
-// For bootstrapping or other setup, used as an array of sequential "things to do"
+// FileOrCommand is for bootstrapping or other setup, used as an array of sequential "things to do"
 // file will upload a file to the container, command will run a command on it
 type FileOrCommand struct {
 	Type           string    `yaml:"type"`             // file or command, what we are going to do
@@ -37,12 +37,13 @@ type FileOrCommand struct {
 	OkReturnValues []float64 `yaml:"ok_return_values"` // list of return values (other than 0) we accept as ok, 0 is always acceptable
 }
 
+// NetworkingConfig holds a network file template and the location where it should be placed in the container
 type NetworkingConfig struct {
 	RemotePath string `yaml:"remote_path"` // path of the file in the container
 	Template   string `yaml:"template"`    // text/template parsable version of the file
 }
 
-// The main config structure mostly pulling together the above items, also holds our client PKI
+// Config is the main config structure mostly pulling together the above items, also holds our client PKI
 type Config struct {
 	Cert       string                                `yaml:"cert"`       // client cert, which can either be the cert contents or file:/path/here that we will read in later
 	Key        string                                `yaml:"key"`        // client key, same as cert, contents or file:/path/here

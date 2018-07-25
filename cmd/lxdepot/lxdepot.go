@@ -25,6 +25,8 @@ var port string
 var conf string
 var webroot string
 var cacheTemplates bool
+
+// Conf is our main config
 var Conf *config.Config
 
 func main() {
