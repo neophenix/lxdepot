@@ -98,7 +98,7 @@ func GetContainers(host string, name string, getState bool) ([]ContainerInfo, er
 
 	// If we want to fetch state, that more expensive as its a new call out for every container.  We will loop
 	// over our newly built array and make the call in a goroutine to at least parallelize that, or make it concurrent
-    // or something of that nature, maybe this helps?
+	// or something of that nature, maybe this helps?
 	if getState {
 		done := make(chan int)
 		start := time.Now()
@@ -187,7 +187,7 @@ func GetImages(host string) ([]ImageInfo, error) {
 }
 
 // CreateContainer creates a container from the given image, with the provided name on the LXD host
-func CreateContainer(host string, name string, image string) error {
+func CreateContainer(host string, name string, image string, options map[string]string) error {
 	conn, err := getConnection(host)
 	if err != nil {
 		return err
@@ -209,12 +209,20 @@ func CreateContainer(host string, name string, image string) error {
 		}
 	}
 
+	// Normally I wouldn't want to just trust the frontend, but this is an internal thing so whatever
+	put := api.ContainerPut{
+		Config: options,
+	}
+
+	// Take the ContinerPut and initialize our Post, its inlined so just toss all the values in
 	req := api.ContainersPost{
-		Name: name,
-		Source: api.ContainerSource{
+		put,
+		name,
+		api.ContainerSource{
 			Type:  "image",
 			Alias: image,
 		},
+		"", // InstanceType, but we just use the default which should be Persistent
 	}
 
 	// schedule the create with LXD, this happens in the background

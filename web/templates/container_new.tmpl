@@ -1,30 +1,60 @@
 {{define "content"}}
 <form id="new-container-form">
-    <div class="field">
-        <label for="name">Name</label>
-        <input type="text" id="name" placeholder="Container Name"/>
-        {{if ne (index .Conf.DNS.Options "zone") ""}}
-            <span class="small move-left">.{{index .Conf.DNS.Options "zone"}}</span>
-        {{end}}
-    </div>
+    <table border=0>
+        <tr>
+            <td class="quarter"><label for="name">Name</label></td>
+            <td>
+                <input type="text" id="name" placeholder="Container Name"/>
+                {{if ne (index .Conf.DNS.Options "zone") ""}}
+                    <span class="small move-left">.{{index .Conf.DNS.Options "zone"}}</span>
+                {{end}}
+            </td>
+        </tr>
 
-    <div class="field">
-        <label for="host">Host</label>
-        <select id="host">
-            {{range .Conf.LXDhosts}}
-                <option value="{{.Host}}">{{.Name}}</option>
-            {{end}}
-        </select>
-    </div>
+        <tr>
+            <td class="quarter"><label for="host">Host</label></td>
+            <td>
+                <select id="host">
+                    {{range .Conf.LXDhosts}}
+                        <option value="{{.Host}}">{{.Name}}</option>
+                    {{end}}
+                </select>
+            </td>
+        </tr>
 
-    <div class="field">
-        <label for="image">OS Image</label>
-        <select id="image">
-        {{range .Images}}
-            <option value="{{(index .Aliases 0).Name}}">{{(index .Aliases 0).Name}}</option>
-        {{end}}
-        </select>
-    </div>
+        <tr>
+            <td class="quarter"><label for="image">OS Image</label></td>
+            <td>
+                <select id="image">
+                </select>
+            </td>
+        </tr>
+
+        <tr>
+            <td class="quarter"><label for="cpu">CPU(s)</label></td>
+            <td>
+                <select id="cpu"></select>
+            </td>
+        </tr>
+
+        <tr>
+            <td class="quarter"><label for="memory">Memory</label></td>
+            <td>
+                <input type="text" id="memory" placeholder="Blank for no limit"/>
+                <select id="memory_units">
+                    <option value="MB">MB</option>
+                    <option value="GB">GB</option>
+                </select>
+            </td>
+        </tr>
+
+        <tr>
+            <td class="quarter"><label for="options">Config</label></td>
+            <td>
+                <textarea rows="5" cols="50" id="options" placeholder="1 key=value per line"></textarea>
+            </td>
+        </tr>
+    </table>
 
     <div class="field">
         <button id="createBtn">Create</button>
@@ -34,7 +64,49 @@
 
 {{define "js"}}
 <script>
+var host_resources = {{.HostResourceJSON}};
+var images = {{.ImageJSON}};
+
+function updateHostOptions(host) {
+    clearSelect("cpu")
+    var cpuSel = document.getElementById("cpu");
+    var all = document.createElement("option");
+    all.value = "-";
+    all.text = "no limits";
+    cpuSel.add(all);
+
+    for (var i = 1; i <= host_resources[host].Resources.cpu.total; i++) {
+        var opt = document.createElement("option");
+        opt.value = i;
+        opt.text = i;
+        cpuSel.add(opt)
+    }
+
+    clearSelect("image")
+    var imgSel = document.getElementById("image")
+    for (var i = 0; i < images[host].length; i++) {
+        var opt = document.createElement("option");
+        opt.value = images[host][i];
+        opt.text = images[host][i];
+        imgSel.add(opt);
+    }
+}
+
+function clearSelect(id) {
+    var sel = document.getElementById(id);
+    for (var i = sel.length - 1; i >= 0; i--) {
+        sel.remove(i);
+    }
+}
+
 (function() {
+    updateHostOptions(document.getElementById("host").value);
+    var hostSel = document.getElementById("host");
+
+    hostSel.addEventListener("change", function(e) {
+        updateHostOptions(this.value);
+    });
+
     var createBtn = document.getElementById("createBtn");
 
     createBtn.addEventListener("click", function(e) {
@@ -43,8 +115,27 @@
         var data = {
             name: document.getElementById("name").value,
             host: document.getElementById("host").value,
-            image: document.getElementById("image").value
+            image: document.getElementById("image").value,
         };
+
+        // grab our cpu + memory limits, even though we could (i think) pass cpu
+        // through with a - for all, only set it if its actually set
+        var options = {};
+        if (document.getElementById("cpu").value != "-") {
+            options["limits.cpu"] = "" + document.getElementById("cpu").value;
+        }
+        if (document.getElementById("memory").value) {
+            options["limits.memory"] = document.getElementById("memory").value + document.getElementById("memory_units").value;
+        }
+
+        // now split our config options by line and then by = to get our key and values to pass in
+        // if someone took the time to override our cpu and memory here let them
+        document.getElementById("options").value.split(/\r?\n/).forEach(function(el) {
+            var o = el.split(/=/); console.log(o);
+            options[o[0]] = o[1];
+        });
+
+        data.options = JSON.stringify(options);
 
         sendWSData("create", data);
     });

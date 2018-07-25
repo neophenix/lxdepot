@@ -2,8 +2,10 @@ package handlers
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"github.com/neophenix/lxdepot/internal/lxd"
+	"html/template"
 	"log"
 	"net/http"
 	"regexp"
@@ -124,18 +126,41 @@ func ContainerHandler(w http.ResponseWriter, r *http.Request) {
 func NewContainerHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/html")
 
+	// images we want to map to host -> image alias so we can use JS
+	// in the template to make sure we only select an image on the selected host
 	images, err := lxd.GetImages("")
 	if err != nil {
 		log.Printf("Could not get image list %s\n", err.Error())
+	}
+	imageMap := make(map[string][]string)
+	for _, image := range images {
+		imageMap[image.Host.Host] = append(imageMap[image.Host.Host], image.Aliases[0].Name)
+	}
+	imageJSON, err := json.Marshal(imageMap)
+	if err != nil {
+		log.Printf("Could not JSONify images: %s\n", err.Error())
+	}
+
+	// Like the images, we are going to get a mapping of host resources and then
+	// convert that to JSON to give the template something to work with
+	hostResourceMap, err := lxd.GetHostResources("")
+	if err != nil {
+		log.Printf("Could not get host resource list %s\n", err.Error())
+	}
+
+	hostResourceJSON, err := json.Marshal(hostResourceMap)
+	if err != nil {
+		log.Printf("Could not JSONify host resource info %s\n", err.Error())
 	}
 
 	tmpl := readTemplate("container_new.tmpl")
 
 	var out bytes.Buffer
 	tmpl.ExecuteTemplate(&out, "base", map[string]interface{}{
-		"Page":   "containers",
-		"Conf":   Conf,
-		"Images": images,
+		"Page":             "containers",
+		"Conf":             Conf,
+		"ImageJSON":        template.JS(imageJSON),
+		"HostResourceJSON": template.JS(hostResourceJSON),
 	})
 
 	fmt.Fprintf(w, string(out.Bytes()))

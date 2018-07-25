@@ -107,7 +107,7 @@ label {
     display: block;
     width: 150px;
 }
-input, textarea, select, button {
+input, select, button {
     font-family : inherit;
     font-size   : 100%;
     width : 150px;
@@ -126,4 +126,8 @@ input, textarea, select, button {
 
 .move-left {
     margin-left: -5px;
+}
+
+.quarter {
+    width: 25%;
 }

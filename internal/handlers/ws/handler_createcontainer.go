@@ -21,7 +21,17 @@ func CreateContainerHandler(conn *websocket.Conn, mt int, msg IncomingMessage) {
 	data, _ := json.Marshal(OutgoingMessage{Id: id, Message: "Creating container", Success: true})
 	conn.WriteMessage(mt, data)
 
-	err := lxd.CreateContainer(msg.Data["host"], msg.Data["name"], msg.Data["image"])
+	// options will be whatever the user wants set like container limits, priority, etc.  Its
+	// called config in LXD land, but since we use config for our config I'm calling it options in here
+	var options map[string]string
+	err := json.Unmarshal([]byte(msg.Data["options"]), &options)
+	if err != nil {
+		data, _ := json.Marshal(OutgoingMessage{Id: id, Message: "failed: " + err.Error(), Success: false})
+		conn.WriteMessage(mt, data)
+		return
+	}
+
+	err = lxd.CreateContainer(msg.Data["host"], msg.Data["name"], msg.Data["image"], options)
 	if err != nil {
 		data, _ := json.Marshal(OutgoingMessage{Id: id, Message: "failed: " + err.Error(), Success: false})
 		conn.WriteMessage(mt, data)
