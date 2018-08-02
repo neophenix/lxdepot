@@ -25,10 +25,17 @@ The config file controls PKI, the hosts we talk to, DNS configuration, and boots
 
 ## PKI
 
-To use this you need to create a client cert and key using openssl or similar.  This cert will then need added to all the LXD hosts you want to talk to via
+To use this you need to create a client cert and key using openssl or similar.  An example openssl command is:
 ```
-lxc config trust add CERTFILE
+openssl req -x509 -nodes -newkey rsa:4096 -keyout client.key -out client.crt -days 365 -subj '/CN=lxdepot'
 ```
+
+This cert will then need added to all the LXD hosts you want to talk to.  Put the client.crt on the host and then do:
+```
+lxc config trust add client.crt
+```
+
+Alter the commands as you see fit, these are only examples.
 
 ## Disabling remote management for certain containers
 
