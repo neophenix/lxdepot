@@ -260,8 +260,10 @@ func StartContainer(host string, name string) error {
 				return nil
 			}
 
-			// don't allow remote management of anything we have locked
-			if !IsManageable(c) {
+			// don't allow remote management of anything we have locked, check that we have a LastUsedAt > 0
+			// which would mean that this container has booted at some point in the past.  If it is 0 then
+			// we just created it, so we want it to boot for the first time
+			if !IsManageable(c) && c.Container.LastUsedAt.Unix() > 0 {
 				return errors.New("lock flag set, remote management denied")
 			}
 		}
