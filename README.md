@@ -40,11 +40,16 @@ Alter the commands as you see fit, these are only examples.
 ## Disabling remote management for certain containers
 
 Sometimes you don't want people messing with your stuff.  To that end, if you do not want LXDepot to manage a container, that is to say start, stop, delete (it will still be listed and you can view info on it), add this user flag to the container.  It will tell LXDepot the container is off limits
+
+During creation add this to the config, the container will start and bootstrap and then be unmanageable by LXDepot
+```
+user.lxdepot_lock=true
+```
+
+Or from the command line:
 ```
 lxc config set CONTAINERNAME user.lxdepot_lock true
 ```
-
-LXDepot has no way to set that remotely, so an admin on the host will need to handle that.  Use unset or change the value from true to anything else for it to be unlocked
 
 ### Limitations
 
