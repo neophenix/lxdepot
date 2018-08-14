@@ -1,0 +1,8 @@
+[Unit]
+Description=LXDepot
+After=network.target
+
+[Service]
+WorkingDirectory=/opt/lxdepot/
+ExecStart=/opt/lxdepot/lxdepot
+Restart=always
