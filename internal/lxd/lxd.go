@@ -113,7 +113,7 @@ func GetContainers(host string, name string, getState bool) ([]ContainerInfo, er
 
 				// Drop the state in our array and calculate the cpu usage so we don't have to muck with that later, still not sure its right
 				containerInfo[idx].State = state
-				containerInfo[idx].Usage["cpu"] = float64(state.CPU.Usage/1000000000) / math.Abs(time.Now().Sub(info.Container.LastUsedAt).Seconds())
+				containerInfo[idx].Usage["cpu"] = (float64(state.CPU.Usage/1000000000) / math.Abs(time.Now().Sub(info.Container.LastUsedAt).Seconds())) * 100
 				done <- idx
 			}(info, idx)
 		}
