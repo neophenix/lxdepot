@@ -18,7 +18,7 @@
                 {{if (ne $iface "lo")}}
                     {{range $info.Addresses}}
                         {{if (eq .Family "inet")}}
-                            {{.Address}}<br/>
+                            {{.Address}} ({{$iface}})<br/>
                         {{end}}
                     {{end}}
                 {{end}}
