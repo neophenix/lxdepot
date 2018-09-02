@@ -53,7 +53,7 @@ func CreateContainerHandler(conn *websocket.Conn, mt int, msg IncomingMessage) {
 			data, _ := json.Marshal(OutgoingMessage{ID: id, Message: "failed to create DNS object for provider: " + Conf.DNS.Provider, Success: false})
 			conn.WriteMessage(mt, data)
 		} else {
-			ip, err := d.GetARecord(msg.Data["name"], Conf.DNS.Options["network"])
+			ip, err := d.GetARecord(msg.Data["name"], Conf.DNS.NetworkBlocks)
 			if err != nil {
 				data, _ := json.Marshal(OutgoingMessage{ID: id, Message: "failed: " + err.Error(), Success: false})
 				conn.WriteMessage(mt, data)
