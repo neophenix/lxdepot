@@ -14,7 +14,6 @@ import (
 // AmazonDNS stores all the options we need to talk to Route 53
 type AmazonDNS struct {
 	CredsFile string // the shared credentials filename (full path)
-	Region    string // the region this service exists in
 	Profile   string // profile within the creds file to use, "" for default
 	ZoneID    string // the Route 53 DNS zone we are using
 }
@@ -40,7 +39,6 @@ func NewAmazonDNS(credsfile string, profile string, zoneid string) *AmazonDNS {
 // getDNSService takes the credentials and should return a Route 53 DNS service
 func (a *AmazonDNS) getDNSService() (*route53.Route53, error) {
 	session, err := session.NewSession(&aws.Config{
-		Region:      aws.String(a.Region),
 		Credentials: credentials.NewSharedCredentials(a.CredsFile, a.Profile),
 	})
 	if err != nil {
@@ -110,8 +108,9 @@ func (a *AmazonDNS) createARecord(name string, ip string) error {
 								Value: aws.String(ip),
 							},
 						},
-						TTL:    aws.Int64(int64(DNSOptions.TTL)),
-						Weight: aws.Int64(1),
+						TTL:           aws.Int64(int64(DNSOptions.TTL)),
+						Weight:        aws.Int64(1),
+						SetIdentifier: aws.String("lxdepot"),
 					},
 				},
 			},
