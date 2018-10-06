@@ -28,16 +28,17 @@ dns:
     dhcp: false
     # what provider to use (currently we support GCP DNS)
     provider: google
+    # list of network blocks to look for a free IP in, inclusive (if we aren't using dhcp)
+    network_blocks:
+        - 10.0.0.0/32,10.0.1.255/32
+        - 10.1.1.200/32,10.1.1.250/32
+    # DNS ttl
+    ttl: 300
+    # The zone that will be appended to our container names
+    # ex mycontainer would become mycontainer.dev.example.com
+    zone: dev.example.com
     # provider options
     options:
-        # DNS ttl
-        ttl: 300
-        # The zone that will be appended to our container names
-        # ex mycontainer would become mycontainer.dev.example.com
-        zone: dev.example.com
-        # the CIDR address of the network our containers will live on, we
-        # use this to lookup free addresses
-        network: 192.168.2.0/24
         # Path to our GCP service account credentials file for adding and removing entries
         gcp_creds_file: /path/to/creds/service_account.json
         # our GCP project name

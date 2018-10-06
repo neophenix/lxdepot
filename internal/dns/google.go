@@ -2,12 +2,10 @@ package dns
 
 import (
 	"errors"
-	"fmt"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
 	gdns "google.golang.org/api/dns/v2beta1"
 	"io/ioutil"
-	"net"
 	"strconv"
 	"strings"
 	"time"
@@ -18,12 +16,6 @@ type GoogleDNS struct {
 	Creds   []byte // the contents of our service account json credentials file
 	Project string // the GCP project name we are operating on
 	Zone    string // the GCP DNS zone we are using
-
-	// various other options we need:
-	//      ttl: the TTL to use for our entries
-	//      zone: the zone portion of our fqdn (dev.example.com), will be appended to hostnames
-	//      network: CIDR of the network we are using to find a free address (10.0.0.0/24)
-	Options map[string]string
 }
 
 // RrsetCache is the cache of all the recordsets, figure if the system is in
@@ -38,13 +30,12 @@ var cache RrsetCache
 // NewGoogleDNS will return our GCP DNS interface
 // The creds, project, and zone here are actually in the options as well, but they are important
 // enough to warrant being "top level" items
-func NewGoogleDNS(creds string, project string, zone string, options map[string]string) *GoogleDNS {
+func NewGoogleDNS(creds string, project string, zone string) *GoogleDNS {
 	data, _ := ioutil.ReadFile(creds)
 	return &GoogleDNS{
 		Creds:   data,
 		Project: project,
 		Zone:    zone,
-		Options: options,
 	}
 }
 
@@ -110,20 +101,14 @@ func (g *GoogleDNS) createARecord(name string, ip string) error {
 	// This is all internal so this should be safe, but check anyway, if it doesn't have a . assume we need to
 	// append the zone name to our hostname, name needs to end in . for GCP to accept it
 	if !strings.Contains(name, ".") {
-		name = name + "." + g.Options["zone"] + "."
-	}
-
-	// Since our options is a string map, convert out TTL to an int64 for actual usage.
-	ttl, err := strconv.ParseInt(g.Options["ttl"], 10, 64)
-	if err != nil {
-		return err
+		name = name + "." + DNSOptions.Zone + "."
 	}
 
 	recordset := gdns.ResourceRecordSet{
 		Kind:    "dns#resourceRecordSet",
 		Name:    name,
 		Rrdatas: []string{ip},
-		Ttl:     ttl,
+		Ttl:     int64(DNSOptions.TTL),
 		Type:    "A",
 	}
 
@@ -158,7 +143,7 @@ func (g *GoogleDNS) deleteARecord(name string) error {
 	// Like in createARecord, if we don't have a . in the name assume we need to append everything.  I think
 	// ideally we should reject hostnames with a . in them and just force us to the the arbiter of a good name
 	if !strings.Contains(name, ".") {
-		name = name + "." + g.Options["zone"] + "."
+		name = name + "." + DNSOptions.Zone + "."
 	}
 
 	// Loop over our cache and grab the recordset by name, we will pass this to our delete request
@@ -195,7 +180,7 @@ func (g *GoogleDNS) deleteARecord(name string) error {
 // this will return the first record encountered, it does not currently ensure that
 // record is in the network we are asking for.  If there is no existing record, it will
 // loop over a 3 dimensional array looking for a free entry to use.
-func (g *GoogleDNS) GetARecord(name string, network string) (string, error) {
+func (g *GoogleDNS) GetARecord(name string, networkBlocks []string) (string, error) {
 	// Make sure our cache is up to date
 	err := g.getZoneRecordSet("")
 	if err != nil {
@@ -204,12 +189,7 @@ func (g *GoogleDNS) GetARecord(name string, network string) (string, error) {
 
 	// Make sure we are looking for the fqdn
 	if !strings.Contains(name, ".") {
-		name = name + "." + g.Options["zone"] + "."
-	}
-
-	_, net, err := net.ParseCIDR(network)
-	if err != nil {
-		return "", errors.New("Could not parse CIDR address [" + network + "] : " + err.Error())
+		name = name + "." + DNSOptions.Zone + "."
 	}
 
 	// This is going to "mark off" all the records we have, so then we can loop over it and find a free spot
@@ -231,29 +211,14 @@ func (g *GoogleDNS) GetARecord(name string, network string) (string, error) {
 		}
 	}
 
-	// Given the network we want to operate on (that we parse above) take each octet of it and then
-	// loop over our marked off list, when we find an entry that = 0 (we didn't mark it) its free, return
-	o1 := int(net.IP[0])
-	for net2 := 0; net2 <= 255-int(net.Mask[1]); net2++ {
-		o2 := int(net.IP[1]) + net2
-
-		for net3 := 0; net3 <= 255-int(net.Mask[2]); net3++ {
-			o3 := int(net.IP[2]) + net3
-
-			// skip .0 and .255 since they aren't usable
-			for net4 := 1; net4 <= 254-int(net.Mask[3]); net4++ {
-				o4 := int(net.IP[3]) + net4
-
-				if list[o2][o3][o4] == 0 {
-					err = g.createARecord(name, fmt.Sprintf("%v.%v.%v.%v", o1, o2, o3, o4))
-					// just return the IP we found and err which will be an error or nil, as one should check that first
-					return fmt.Sprintf("%v.%v.%v.%v", o1, o2, o3, o4), err
-				}
-			}
-		}
+	ip, err := findFreeARecord(&list, networkBlocks)
+	if err != nil {
+		return "", err
 	}
 
-	return "", errors.New("Could not find a free A record")
+	err = g.createARecord(name, ip)
+	// just return the IP we found and err which will be an error or nil, as one should check that first
+	return ip, err
 }
 
 // RemoveARecord passes our name to deleteARecord as it doesn't have to do any additional processing
