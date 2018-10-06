@@ -26,7 +26,7 @@ lxdhosts:
 dns:
     # dhcp true/false if we use DHCP then we skip third party provider DNS
     dhcp: false
-    # what provider to use (currently we support GCP DNS)
+    # what provider to use (google / amazon)
     provider: google
     # list of network blocks to look for a free IP in, inclusive (if we aren't using dhcp)
     network_blocks:
@@ -37,14 +37,23 @@ dns:
     # The zone that will be appended to our container names
     # ex mycontainer would become mycontainer.dev.example.com
     zone: dev.example.com
-    # provider options
+    # provider options (dependent on provider)
     options:
+        # GCP Options
         # Path to our GCP service account credentials file for adding and removing entries
         gcp_creds_file: /path/to/creds/service_account.json
         # our GCP project name
         gcp_project_name: example.com:dev
         # our GCP DNS zone name
         gcp_zone_name: example-dev-zone
+
+        # AWS (Route 53) Options
+        # Path to the shared credentials file as that seems recommended
+        aws_creds_file: /path/to/shared/creds/file
+        # Profile within the creds file to use
+        aws_creds_profile: default
+        # Hosted zone id
+        aws_zone_id: THISIS123ATEST
 
 # networking currently houses "files" that will be parsed through text/template and passed
 # an IP to fill out, these are then uploaded to the container after creation and before starting

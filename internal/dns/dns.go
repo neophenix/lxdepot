@@ -35,6 +35,8 @@ func New(conf *config.Config) DNS {
 
 	if conf.DNS.Provider == "google" {
 		return NewGoogleDNS(conf.DNS.Options["gcp_creds_file"], conf.DNS.Options["gcp_project_name"], conf.DNS.Options["gcp_zone_name"])
+	} else if conf.DNS.Provider == "amazon" {
+		return NewAmazonDNS(conf.DNS.Options["aws_creds_file"], conf.DNS.Options["aws_creds_profile"], conf.DNS.Options["aws_zone_id"])
 	}
 
 	return nil
