@@ -21,8 +21,7 @@ type LXDhost struct {
 
 // DNS settings, or are we using DHCP or a 3rd party provider
 type DNS struct {
-	DHCP          bool              `yaml:"dhcp"`           // Are we using DHCP on our network, if true we skip any provider settings
-	Provider      string            `yaml:"provider"`       // Provider name, current supported: google
+	Provider      string            `yaml:"provider"`       // Provider name: google, amazon, dhcp
 	NetworkBlocks []string          `yaml:"network_blocks"` // List of blocks that we can use for IPs, if not defined we can use any IP in the network
 	TTL           int               `yaml:"ttl"`            // Default TTL of DNS entries
 	Zone          string            `yaml:"zone"`           // DNS zone

@@ -6,6 +6,7 @@ import (
 	"github.com/gorilla/websocket"
 	"github.com/neophenix/lxdepot/internal/dns"
 	"github.com/neophenix/lxdepot/internal/lxd"
+	"strings"
 	"text/template"
 	"time"
 )
@@ -43,7 +44,7 @@ func CreateContainerHandler(conn *websocket.Conn, mt int, msg IncomingMessage) {
 
 	// DNS? If this fails I don't think it is enough reason to bail, will see
 	// -------------------------
-	if !Conf.DNS.DHCP {
+	if strings.ToLower(Conf.DNS.Provider) != "dhcp" {
 		id := time.Now().UnixNano()
 		data, _ := json.Marshal(OutgoingMessage{ID: id, Message: "Creating DNS entry", Success: true})
 		conn.WriteMessage(mt, data)

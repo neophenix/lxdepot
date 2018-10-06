@@ -24,9 +24,7 @@ lxdhosts:
 
 # dns lets us configure how our containers will get their IP addresses
 dns:
-    # dhcp true/false if we use DHCP then we skip third party provider DNS
-    dhcp: false
-    # what provider to use (google / amazon)
+    # what provider to use (google / amazon / dhcp)
     provider: google
     # list of network blocks to look for a free IP in, inclusive (if we aren't using dhcp)
     network_blocks:
