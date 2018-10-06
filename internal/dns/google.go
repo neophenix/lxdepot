@@ -18,14 +18,14 @@ type GoogleDNS struct {
 	Zone    string // the GCP DNS zone we are using
 }
 
-// RrsetCache is the cache of all the recordsets, figure if the system is in
+// googleRrsetCache is the cache of all the recordsets, figure if the system is in
 // regular use its better to store these for a few minutes than make a call each time
-type RrsetCache struct {
+type googleRrsetCache struct {
 	Rrsets    []*gdns.ResourceRecordSet
 	CacheTime time.Time
 }
 
-var cache RrsetCache
+var gcache googleRrsetCache
 
 // NewGoogleDNS will return our GCP DNS interface
 // The creds, project, and zone here are actually in the options as well, but they are important
@@ -59,12 +59,12 @@ func (g *GoogleDNS) getDNSService() (*gdns.Service, error) {
 // getZoneRecordSet either returns our cache of records or fetches new ones.
 // This is recursive if we run into pagination
 func (g *GoogleDNS) getZoneRecordSet(token string) error {
-	if token == "" && cache.CacheTime != (time.Time{}) {
+	if token == "" && gcache.CacheTime != (time.Time{}) {
 		now := time.Now()
-		if now.Sub(cache.CacheTime).Seconds() <= 30 {
+		if now.Sub(gcache.CacheTime).Seconds() <= 30 {
 			return nil
 		}
-		cache = RrsetCache{}
+		gcache = googleRrsetCache{}
 	}
 
 	service, err := g.getDNSService()
@@ -82,8 +82,8 @@ func (g *GoogleDNS) getZoneRecordSet(token string) error {
 		return errors.New("Error fetching record set: " + err.Error())
 	}
 
-	cache.Rrsets = append(cache.Rrsets, resp.Rrsets...)
-	cache.CacheTime = time.Now()
+	gcache.Rrsets = append(gcache.Rrsets, resp.Rrsets...)
+	gcache.CacheTime = time.Now()
 	if resp.NextPageToken != "" {
 		return g.getZoneRecordSet(resp.NextPageToken)
 	}
@@ -148,7 +148,7 @@ func (g *GoogleDNS) deleteARecord(name string) error {
 
 	// Loop over our cache and grab the recordset by name, we will pass this to our delete request
 	var rrset *gdns.ResourceRecordSet
-	for _, set := range cache.Rrsets {
+	for _, set := range gcache.Rrsets {
 		if set.Name == name {
 			rrset = set
 			break
@@ -170,7 +170,7 @@ func (g *GoogleDNS) deleteARecord(name string) error {
 		}
 
 		// Pop the cache instead of trying to be clever
-		cache.CacheTime = time.Time{}
+		gcache.CacheTime = time.Time{}
 	}
 
 	return nil
@@ -194,7 +194,7 @@ func (g *GoogleDNS) GetARecord(name string, networkBlocks []string) (string, err
 
 	// This is going to "mark off" all the records we have, so then we can loop over it and find a free spot
 	var list [256][256][256]int
-	for _, set := range cache.Rrsets {
+	for _, set := range gcache.Rrsets {
 		if set.Type == "A" {
 			for _, ip := range set.Rrdatas {
 				octets := strings.Split(ip, ".")
@@ -238,7 +238,7 @@ func (g *GoogleDNS) ListARecords() ([]RecordList, error) {
 		return list, err
 	}
 
-	for _, set := range cache.Rrsets {
+	for _, set := range gcache.Rrsets {
 		if set.Type == "A" {
 			list = append(list, RecordList{Name: set.Name, RecordSet: set.Rrdatas})
 		}
