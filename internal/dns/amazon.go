@@ -37,6 +37,7 @@ func NewAmazonDNS(credsfile string, profile string, zoneid string) *AmazonDNS {
 	}
 }
 
+// getDNSService takes the credentials and should return a Route 53 DNS service
 func (a *AmazonDNS) getDNSService() (*route53.Route53, error) {
 	session, err := session.NewSession(&aws.Config{
 		Region:      aws.String(a.Region),
@@ -83,7 +84,7 @@ func (a *AmazonDNS) getZoneRecordSet() error {
 	return nil
 }
 
-// createARecord creates the entry in GCP
+// createARecord creates the entry in Route 53
 func (a *AmazonDNS) createARecord(name string, ip string) error {
 	service, err := a.getDNSService()
 	if err != nil {
