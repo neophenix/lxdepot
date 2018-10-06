@@ -37,6 +37,8 @@ lxc config trust add client.crt
 
 Alter the commands as you see fit, these are only examples.
 
+The server certificate can then be found (on the LXD host) at: /var/lib/lxd/server.crt
+
 ## Disabling remote management for certain containers
 
 Sometimes you don't want people messing with your stuff.  To that end, if you do not want LXDepot to manage a container, that is to say start, stop, delete (it will still be listed and you can view info on it), add this user flag to the container.  It will tell LXDepot the container is off limits
@@ -55,6 +57,6 @@ lxc config set CONTAINERNAME user.lxdepot_lock true
 
 First, this was an experiment in learning Go, so I'm sure there are a few things that make you go ... wat
 
-Secondly, everthing was initially developed for use at [Circonus](https://www.circonus.com) so perhaps some assumptions were made (like limiting to IPv4), and / or limitations in support of images or GCP DNS because that is what we use.
+Secondly, everthing was initially developed for use at [Circonus](https://www.circonus.com) so perhaps some assumptions were made (like limiting to IPv4).
 
-Last, tests ... haven't figured that part out yet.
+Last, tests are light / not really exsistent for anything as this depends on a lot of external services to really do anything, and I haven't decided how to handle that in test yet
