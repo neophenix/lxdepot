@@ -32,7 +32,7 @@ func CreateContainerHandler(conn *websocket.Conn, mt int, msg IncomingMessage) {
 		return
 	}
 
-	err = lxd.CreateContainer(msg.Data["host"], msg.Data["name"], msg.Data["image"], options)
+	err = lxd.CreateContainer(msg.Data["host"], msg.Data["name"], msg.Data["image"], msg.Data["storagepool"], options)
 	if err != nil {
 		data, _ := json.Marshal(OutgoingMessage{ID: id, Message: "failed: " + err.Error(), Success: false})
 		conn.WriteMessage(mt, data)

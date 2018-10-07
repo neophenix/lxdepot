@@ -187,7 +187,7 @@ func GetImages(host string) ([]ImageInfo, error) {
 }
 
 // CreateContainer creates a container from the given image, with the provided name on the LXD host
-func CreateContainer(host string, name string, image string, options map[string]string) error {
+func CreateContainer(host string, name string, image string, storagepool string, options map[string]string) error {
 	conn, err := getConnection(host)
 	if err != nil {
 		return err
@@ -212,6 +212,17 @@ func CreateContainer(host string, name string, image string, options map[string]
 	// Normally I wouldn't want to just trust the frontend, but this is an internal thing so whatever
 	put := api.ContainerPut{
 		Config: options,
+	}
+
+	if storagepool != "" && storagepool != "default" {
+		// Storage pools are set via devices
+		store := make(map[string]string)
+		store["path"] = "/"
+		store["pool"] = storagepool
+		store["type"] = "disk"
+
+		put.Devices = make(map[string]map[string]string)
+		put.Devices["root"] = store
 	}
 
 	// Take the ContinerPut and initialize our Post, its inlined so just toss all the values in
