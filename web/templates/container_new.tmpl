@@ -30,6 +30,14 @@
             </td>
         </tr>
 
+        <tr id="storage_row">
+            <td class="quarter"><label for="image">Storage Pool</label></td>
+            <td>
+                <select id="storagepool">
+                </select>
+            </td>
+        </tr>
+
         <tr>
             <td class="quarter"><label for="cpu">CPU(s)</label></td>
             <td>
@@ -65,6 +73,7 @@
 {{define "js"}}
 <script>
 var host_resources = {{.HostResourceJSON}};
+var host_storage = {{.HostStorageJSON}};
 var images = {{.ImageJSON}};
 
 function updateHostOptions(host) {
@@ -89,6 +98,31 @@ function updateHostOptions(host) {
         opt.value = images[host][i];
         opt.text = images[host][i];
         imgSel.add(opt);
+    }
+
+    clearSelect("storagepool");
+    var storSel = document.getElementById("storagepool");
+    // always toss default on first, then the rest
+    var opt = document.createElement("option");
+    opt.value = "default";
+    opt.text = "default";
+    storSel.add(opt);
+
+    if ( host_storage[host].length > 1 ) {
+        host_storage[host].sort();
+        for (var i = 0; i < host_storage[host].length; i++) {
+            // skip default, we should have already done it
+            if ( host_storage[host][i] !== "default" ) {
+                var opt = document.createElement("option");
+                opt.value = host_storage[host][i];
+                opt.text = host_storage[host][i];
+                storSel.add(opt);
+            }
+        }
+        document.getElementById("storage_row").style.display = "";
+    }
+    else {
+        document.getElementById("storage_row").style.display = "none";
     }
 }
 
@@ -116,6 +150,7 @@ function clearSelect(id) {
             name: document.getElementById("name").value,
             host: document.getElementById("host").value,
             image: document.getElementById("image").value,
+            storagepool: document.getElementById("storagepool").value
         };
 
         // grab our cpu + memory limits, even though we could (i think) pass cpu

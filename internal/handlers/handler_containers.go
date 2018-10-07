@@ -153,6 +153,17 @@ func NewContainerHandler(w http.ResponseWriter, r *http.Request) {
 		log.Printf("Could not JSONify host resource info %s\n", err.Error())
 	}
 
+	// Now grab the list of available storage pools so we can select that on creation
+	hostStoragePools, err := lxd.GetStoragePools("")
+	if err != nil {
+		log.Printf("Could not get storage pools %s\n", err.Error())
+	}
+
+	hostStorageJSON, err := json.Marshal(hostStoragePools)
+	if err != nil {
+		log.Printf("Could not JSONify storage pools %s\n", err.Error())
+	}
+
 	tmpl := readTemplate("container_new.tmpl")
 
 	var out bytes.Buffer
@@ -161,6 +172,7 @@ func NewContainerHandler(w http.ResponseWriter, r *http.Request) {
 		"Conf":             Conf,
 		"ImageJSON":        template.JS(imageJSON),
 		"HostResourceJSON": template.JS(hostResourceJSON),
+		"HostStorageJSON":  template.JS(hostStorageJSON),
 	})
 
 	fmt.Fprintf(w, string(out.Bytes()))
