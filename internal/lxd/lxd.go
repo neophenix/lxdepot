@@ -414,6 +414,31 @@ func GetHostResources(host string) (map[string]HostResourceInfo, error) {
 	return resourceHostMap, nil
 }
 
+// GetStoragePools gets a list of all the storage pools available for each host
+func GetStoragePools(host string) (map[string][]string, error) {
+	storagePoolMap := make(map[string][]string)
+
+	for _, lxdh := range Conf.LXDhosts {
+		if host == "" || lxdh.Host == host {
+			conn, err := getConnection(lxdh.Host)
+			if err != nil {
+				log.Printf("Connection error to " + lxdh.Host + " : " + err.Error())
+				continue
+			}
+
+			pools, err := conn.GetStoragePoolNames()
+			if err != nil {
+				log.Printf("Error getting pools from " + lxdh.Host + " : " + err.Error())
+				continue
+			}
+
+			storagePoolMap[lxdh.Host] = append(storagePoolMap[lxdh.Host], pools...)
+		}
+	}
+
+	return storagePoolMap, nil
+}
+
 // CreateFile creates a file or directory on the container.  If the provided path ends in / we assume
 // that we are creating a directory
 func CreateFile(host string, name string, path string, mode int, contents string) error {
