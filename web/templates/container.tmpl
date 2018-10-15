@@ -65,6 +65,16 @@
             <td>Status</td>
             <td>{{.Container.Container.Status}}</td>
         </tr>
+        <tr>
+            <td>Last Boot</td>
+            <td>
+                {{if eq .Container.Container.LastUsedAt.Unix 0}}
+                    Never
+                {{else}}
+                    {{.Container.Container.LastUsedAt}}
+                {{end}}
+            </td>
+        </tr>
         {{if ne (index .Container.Container.ExpandedConfig "user.lxdepot_lock") "true"}}
             {{if eq .Container.Container.Status "Running"}}
                 {{if .Playbooks}}
