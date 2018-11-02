@@ -393,15 +393,13 @@ func GetHostResources(host string) (map[string]HostResourceInfo, error) {
 
 	for _, lxdh := range Conf.LXDhosts {
 		if host == "" || lxdh.Host == host {
+			resources := &api.Resources{}
+
 			conn, err := getConnection(lxdh.Host)
 			if err != nil {
 				log.Printf("Connection error to " + lxdh.Host + " : " + err.Error())
-				continue
-			}
-
-			resources, err := conn.GetServerResources()
-			if err != nil {
-				return resourceHostMap, err
+			} else {
+				resources, _ = conn.GetServerResources()
 			}
 
 			resourceHostMap[lxdh.Host] = HostResourceInfo{
