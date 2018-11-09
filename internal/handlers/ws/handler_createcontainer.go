@@ -42,7 +42,8 @@ func CreateContainerHandler(conn *websocket.Conn, mt int, msg IncomingMessage) {
 	conn.WriteMessage(mt, data)
 	// -------------------------
 
-	// DNS? If this fails I don't think it is enough reason to bail, will see
+	// DNS Previously we would fail here and continue, but that has been shown to lead to multiple containers being assigned
+	// the same IP, which turns out is a bad idea.  So now we will fail, and let the user cleanup.
 	// -------------------------
 	if strings.ToLower(Conf.DNS.Provider) != "dhcp" {
 		id := time.Now().UnixNano()
@@ -53,11 +54,13 @@ func CreateContainerHandler(conn *websocket.Conn, mt int, msg IncomingMessage) {
 		if d == nil {
 			data, _ := json.Marshal(OutgoingMessage{ID: id, Message: "failed to create DNS object for provider: " + Conf.DNS.Provider, Success: false})
 			conn.WriteMessage(mt, data)
+			return
 		} else {
 			ip, err := d.GetARecord(msg.Data["name"], Conf.DNS.NetworkBlocks)
 			if err != nil {
 				data, _ := json.Marshal(OutgoingMessage{ID: id, Message: "failed: " + err.Error(), Success: false})
 				conn.WriteMessage(mt, data)
+				return
 			} else {
 				data, _ = json.Marshal(OutgoingMessage{ID: id, Message: ip, Success: true})
 				conn.WriteMessage(mt, data)
