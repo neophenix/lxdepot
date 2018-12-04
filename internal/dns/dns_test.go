@@ -1,6 +1,11 @@
 package dns
 
-import "testing"
+import (
+	"flag"
+	"testing"
+)
+
+var doPing = flag.Bool("ping", false, "run the ping test")
 
 func TestFindFreeARecord(t *testing.T) {
 	var list [256][256][256]int
@@ -59,11 +64,13 @@ func TestFindFreeARecord(t *testing.T) {
 	// we are going to give the find a list where the first few IPs are known to be in use, tell it to
 	// ping them, and hopefully it will return the first free that doesn't ping (I used .1 and .2)
 	// the list shouldn't have 168.1.{1,2} set in it at all, so those should be "free" as far as it knows
-	ip, err = findFreeARecord(&list, []string{"192.168.1.1/32,192.168.1.5/32"}, true)
-	if err != nil {
-		t.Errorf("T6: %v", err.Error())
-		t.FailNow()
-	} else if ip != "192.168.1.3" {
-		t.Errorf("T6: Expected 192.168.1.3 got %v", ip)
+	if *doPing {
+		ip, err = findFreeARecord(&list, []string{"192.168.1.1/32,192.168.1.5/32"}, true)
+		if err != nil {
+			t.Errorf("T6: %v", err.Error())
+			t.FailNow()
+		} else if ip != "192.168.1.3" {
+			t.Errorf("T6: Expected 192.168.1.3 got %v", ip)
+		}
 	}
 }
