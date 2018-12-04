@@ -35,6 +35,9 @@ dns:
     # The zone that will be appended to our container names
     # ex mycontainer would become mycontainer.dev.example.com
     zone: dev.example.com
+    # Do we want to ping the IP as pick from our DNS provider before using it, if we
+    # can ping it, the host is up and we won't use that IP
+    ping: true
     # provider options (dependent on provider)
     options:
         # GCP Options

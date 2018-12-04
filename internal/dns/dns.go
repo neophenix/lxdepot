@@ -5,8 +5,10 @@ import (
 	"errors"
 	"fmt"
 	"github.com/neophenix/lxdepot/internal/config"
+	"github.com/sparrc/go-ping"
 	"net"
 	"strings"
+	"time"
 )
 
 // RecordList is a simple look at DNS records used as a common return for our interface
@@ -45,7 +47,7 @@ func New(conf *config.Config) DNS {
 // findFreeARecord takes a populated list of octets 2->4 and a list of network blocks, looks through the list
 // to find an entry != 0 indicating that IP is free and returns it.  Blocks are used in order and we skip
 // 0 and 255 for octet4
-func findFreeARecord(list *[256][256][256]int, networkBlocks []string) (string, error) {
+func findFreeARecord(list *[256][256][256]int, networkBlocks []string, doPing bool) (string, error) {
 	for _, block := range networkBlocks {
 		ips := strings.Split(block, ",")
 		_, startnet, err := net.ParseCIDR(strings.TrimSpace(ips[0]))
@@ -84,7 +86,30 @@ func findFreeARecord(list *[256][256][256]int, networkBlocks []string) (string, 
 					}
 
 					if list[octet2][octet3][octet4] == 0 {
-						return fmt.Sprintf("%v.%v.%v.%v", octet1, octet2, octet3, octet4), nil
+						useable := true
+						// if the user has requested we ping the address we found do so now, if we
+						// get a response back its not useable and we will move on to the next one
+						if doPing {
+							pinger, err := ping.NewPinger(fmt.Sprintf("%v.%v.%v.%v", octet1, octet2, octet3, octet4))
+							if err != nil {
+								return "", err
+							}
+
+							// This is how long we will wait for a response, which should mean we managed
+							// to wait for 2 packets as go-ping sends one a second
+							pinger.Timeout = 3 * time.Second
+							pinger.OnRecv = func(pkt *ping.Packet) {
+								// The host is alive, this address is in use, not going to return it
+								useable = false
+								pinger.Stop()
+							}
+							// actually run the ping now
+							pinger.Run()
+						}
+
+						if useable {
+							return fmt.Sprintf("%v.%v.%v.%v", octet1, octet2, octet3, octet4), nil
+						}
 					}
 				}
 				octet4 = 1
