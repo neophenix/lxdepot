@@ -211,7 +211,7 @@ func (g *GoogleDNS) GetARecord(name string, networkBlocks []string) (string, err
 		}
 	}
 
-	ip, err := findFreeARecord(&list, networkBlocks, DNSOptions.Ping)
+	ip, err := findFreeARecord(&list, networkBlocks)
 	if err != nil {
 		return "", err
 	}

@@ -25,7 +25,6 @@ type DNS struct {
 	NetworkBlocks []string          `yaml:"network_blocks"` // List of blocks that we can use for IPs, if not defined we can use any IP in the network
 	TTL           int               `yaml:"ttl"`            // Default TTL of DNS entries
 	Zone          string            `yaml:"zone"`           // DNS zone
-	Ping          bool              `yaml:"ping"`           // True / False if we want to ping the address before we return it as useable
 	Options       map[string]string `yaml:"options"`        // Providers options documented at the top of a provider implementation
 }
 

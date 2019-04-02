@@ -2,15 +2,12 @@
 
 
 [[projects]]
-  digest = "1:5c3894b2aa4d6bead0ceeea6831b305d62879c871780e7b76296ded1b004bc57"
   name = "cloud.google.com/go"
   packages = ["compute/metadata"]
-  pruneopts = "UT"
   revision = "aad3f485ee528456e0768f20397b4d9dd941e755"
   version = "v0.25.0"
 
 [[projects]]
-  digest = "1:5220abb35955762e108b2227fb523311762d64e667a5c85a266edea1d2e08ccf"
   name = "github.com/aws/aws-sdk-go"
   packages = [
     "aws",
@@ -41,70 +38,54 @@
     "private/protocol/restxml",
     "private/protocol/xml/xmlutil",
     "service/route53",
-    "service/sts",
+    "service/sts"
   ]
-  pruneopts = "UT"
   revision = "59124d90523f4c0491f997f9a36aef265fe3502c"
   version = "v1.15.49"
 
 [[projects]]
-  digest = "1:b98e7574fc27ec166fb31195ec72c3bd0bffd73926d3612eb4c929bc5236f75b"
   name = "github.com/go-ini/ini"
   packages = ["."]
-  pruneopts = "UT"
   revision = "7b294651033cd7d9e7f0d9ffa1b75ed1e198e737"
   version = "v1.38.3"
 
 [[projects]]
-  digest = "1:15042ad3498153684d09f393bbaec6b216c8eec6d61f63dff711de7d64ed8861"
   name = "github.com/golang/protobuf"
   packages = ["proto"]
-  pruneopts = "UT"
   revision = "b4deda0973fb4c70b50d226b1af49f3da59f5265"
   version = "v1.1.0"
 
 [[projects]]
-  digest = "1:43dd08a10854b2056e615d1b1d22ac94559d822e1f8b6fcc92c1a1057e85188e"
   name = "github.com/gorilla/websocket"
   packages = ["."]
-  pruneopts = "UT"
   revision = "ea4d1f681babbce9545c9c5f3d5194a789c89f5b"
   version = "v1.2.0"
 
 [[projects]]
-  digest = "1:e22af8c7518e1eab6f2eab2b7d7558927f816262586cd6ed9f349c97a6c285c4"
   name = "github.com/jmespath/go-jmespath"
   packages = ["."]
-  pruneopts = "UT"
   revision = "0b12d6b5"
 
 [[projects]]
   branch = "master"
-  digest = "1:a330103bc9731260ee9fa14764e9e3fce46e02de19d6aca3eeba1d425badfbf0"
   name = "github.com/juju/loggo"
   packages = ["."]
-  pruneopts = "UT"
   revision = "584905176618da46b895b176c721b02c476b6993"
 
 [[projects]]
   branch = "master"
-  digest = "1:151d8c34a506d526d1c5605daa4efef27d7226284bd313b96c320d65b4efb617"
   name = "github.com/juju/webbrowser"
   packages = ["."]
-  pruneopts = "UT"
   revision = "54b8c57083b4afb7dc75da7f13e2967b2606a507"
 
 [[projects]]
-  digest = "1:ccfa094742ce1c97fd3f6481e1bf98f3d9862510eee2bc0eb56e2745396bd330"
   name = "github.com/julienschmidt/httprouter"
   packages = ["."]
-  pruneopts = "UT"
   revision = "8c199fb6259ffc1af525cc3ad52ee60ba8359669"
   version = "v1.1"
 
 [[projects]]
   branch = "master"
-  digest = "1:3377582624643935815c14107d00bafd287653066d1de26db8d6c0151f60693b"
   name = "github.com/lxc/lxd"
   packages = [
     "client",
@@ -114,38 +95,24 @@
     "shared/ioprogress",
     "shared/logger",
     "shared/osarch",
-    "shared/simplestreams",
+    "shared/simplestreams"
   ]
-  pruneopts = "UT"
   revision = "442746125e176b19ace306748a77f2fb2d9aee49"
 
 [[projects]]
-  digest = "1:40e195917a951a8bf867cd05de2a46aaf1806c50cf92eebf4c16f78cd196f747"
   name = "github.com/pkg/errors"
   packages = ["."]
-  pruneopts = "UT"
   revision = "645ef00459ed84a119197bfb8d8205042c6df63d"
   version = "v0.8.0"
 
 [[projects]]
   branch = "master"
-  digest = "1:d673e95129a1107bfd04e093751a5e1267faabc27d218d824fb013f57ac08f55"
   name = "github.com/rogpeppe/fastuuid"
   packages = ["."]
-  pruneopts = "UT"
   revision = "6724a57986aff9bff1a1770e9347036def7c89f6"
 
 [[projects]]
   branch = "master"
-  digest = "1:fd18b3e9b2ec7f9b5d268e94346dbcc425f0455e207f4d688597cd86001543b7"
-  name = "github.com/sparrc/go-ping"
-  packages = ["."]
-  pruneopts = "UT"
-  revision = "ef3ab45e41b017889941ea5bb796dd502d2b5a1b"
-
-[[projects]]
-  branch = "master"
-  digest = "1:57178fd65de60b4140785fb964300941c66c4ae7fcf110b4fcaca70ce9027976"
   name = "golang.org/x/crypto"
   packages = [
     "curve25519",
@@ -153,48 +120,36 @@
     "nacl/box",
     "nacl/secretbox",
     "poly1305",
-    "salsa20/salsa",
+    "salsa20/salsa"
   ]
-  pruneopts = "UT"
   revision = "a49355c7e3f8fe157a85be2f77e6e269a0f89602"
 
 [[projects]]
   branch = "master"
-  digest = "1:6912ddfd7779f6df32e9303d144490d757145d1f1db93cd337c80a71b9d54b7b"
   name = "golang.org/x/net"
   packages = [
-    "bpf",
     "context",
     "context/ctxhttp",
     "html",
     "html/atom",
-    "icmp",
     "idna",
-    "internal/iana",
-    "internal/socket",
-    "ipv4",
-    "ipv6",
-    "publicsuffix",
+    "publicsuffix"
   ]
-  pruneopts = "UT"
   revision = "d0887baf81f4598189d4e12a37c6da86f0bba4d0"
 
 [[projects]]
   branch = "master"
-  digest = "1:bea0314c10bd362ab623af4880d853b5bad3b63d0ab9945c47e461b8d04203ed"
   name = "golang.org/x/oauth2"
   packages = [
     ".",
     "google",
     "internal",
     "jws",
-    "jwt",
+    "jwt"
   ]
-  pruneopts = "UT"
   revision = "ef147856a6ddbb60760db74283d2424e98c87bff"
 
 [[projects]]
-  digest = "1:a2ab62866c75542dd18d2b069fec854577a20211d7c0ea6ae746072a1dccdd18"
   name = "golang.org/x/text"
   packages = [
     "collate",
@@ -210,27 +165,23 @@
     "unicode/bidi",
     "unicode/cldr",
     "unicode/norm",
-    "unicode/rangetable",
+    "unicode/rangetable"
   ]
-  pruneopts = "UT"
   revision = "f21a4dfb5e38f5895301dc265a8def02365cc3d0"
   version = "v0.3.0"
 
 [[projects]]
   branch = "master"
-  digest = "1:f6168c0f2260da9e197a7cc959fb78bf867a0d767e835b780cd19f9502017d1e"
   name = "google.golang.org/api"
   packages = [
     "dns/v2beta1",
     "gensupport",
     "googleapi",
-    "googleapi/internal/uritemplates",
+    "googleapi/internal/uritemplates"
   ]
-  pruneopts = "UT"
   revision = "781db45e5b94469718b0c615037e76333cd050e3"
 
 [[projects]]
-  digest = "1:c8907869850adaa8bd7631887948d0684f3787d0912f1c01ab72581a6c34432e"
   name = "google.golang.org/appengine"
   packages = [
     ".",
@@ -242,74 +193,50 @@
     "internal/modules",
     "internal/remote_api",
     "internal/urlfetch",
-    "urlfetch",
+    "urlfetch"
   ]
-  pruneopts = "UT"
   revision = "b1f26356af11148e710935ed1ac8a7f5702c7612"
   version = "v1.1.0"
 
 [[projects]]
   branch = "v1"
-  digest = "1:beb56f8f7b0cb98f3773e279d02ddc67b20fbff1f277d29fe74209b65cbcad26"
   name = "gopkg.in/errgo.v1"
   packages = ["."]
-  pruneopts = "UT"
   revision = "c17903c6b19d5dedb9cfba9fa314c7fae63e554f"
 
 [[projects]]
-  digest = "1:bbe9ba411f7f948caf21d2d431ea8ea70195f51c9bb5bfa70c44cd9d8de3fb33"
   name = "gopkg.in/httprequest.v1"
   packages = ["."]
-  pruneopts = "UT"
   revision = "a1015531595ff2ed1a0c126b55da352e6923eaac"
   version = "v1.1.2"
 
 [[projects]]
-  digest = "1:8e93474d902cacabfbfeb53623b26f02cfa8536e265eb06c357fcfd1a44a8559"
   name = "gopkg.in/macaroon-bakery.v2"
   packages = [
     "bakery",
     "bakery/checkers",
     "bakery/internal/macaroonpb",
     "httpbakery",
-    "internal/httputil",
+    "internal/httputil"
   ]
-  pruneopts = "UT"
   revision = "94012773d2874a067572bd16d7d11ae02968b47b"
   version = "v2.0.1"
 
 [[projects]]
-  digest = "1:0622939c131fd6ca6fc9dfb25adda2f195062975045baba7ad94607e6f3c52b7"
   name = "gopkg.in/macaroon.v2"
   packages = ["."]
-  pruneopts = "UT"
   revision = "bed2a428da6e56d950bed5b41fcbae3141e5b0d0"
   version = "v2.0.0"
 
 [[projects]]
-  digest = "1:342378ac4dcb378a5448dd723f0784ae519383532f5e70ade24132c4c8693202"
   name = "gopkg.in/yaml.v2"
   packages = ["."]
-  pruneopts = "UT"
   revision = "5420a8b6744d3b0345ab293f6fcba19c978f1183"
   version = "v2.2.1"
 
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  input-imports = [
-    "github.com/aws/aws-sdk-go/aws",
-    "github.com/aws/aws-sdk-go/aws/credentials",
-    "github.com/aws/aws-sdk-go/aws/session",
-    "github.com/aws/aws-sdk-go/service/route53",
-    "github.com/gorilla/websocket",
-    "github.com/lxc/lxd/client",
-    "github.com/lxc/lxd/shared/api",
-    "github.com/sparrc/go-ping",
-    "golang.org/x/oauth2",
-    "golang.org/x/oauth2/google",
-    "google.golang.org/api/dns/v2beta1",
-    "gopkg.in/yaml.v2",
-  ]
+  inputs-digest = "04bd3b48b83a7a8c63fd4c56b69c0c01cede29c5ea51f99e03c89e73ad957604"
   solver-name = "gps-cdcl"
   solver-version = 1
