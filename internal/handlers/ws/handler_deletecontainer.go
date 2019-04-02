@@ -19,8 +19,21 @@ func DeleteContainerHandler(conn *websocket.Conn, mt int, msg IncomingMessage) {
 		return
 	}
 
-	// DNS? If this fails I don't think it is enough reason to bail, will see
-	// -------------------------
+	// Delete the container, moved to before DNS since if we fail to delete the container after
+	// we remove DNS and someone makes a new container we could end up with multiple containers
+	// on the network with the same IP and thats more annoying than alternatives
+	id := time.Now().UnixNano()
+	data, _ := json.Marshal(OutgoingMessage{ID: id, Message: "Deleting container", Success: true})
+	conn.WriteMessage(mt, data)
+
+	err = lxd.DeleteContainer(msg.Data["host"], msg.Data["name"])
+	if err != nil {
+		data, _ := json.Marshal(OutgoingMessage{ID: id, Message: "failed: " + err.Error(), Success: false})
+		conn.WriteMessage(mt, data)
+		return
+	}
+
+	// DNS if we aren't using DHCP
 	if strings.ToLower(Conf.DNS.Provider) != "dhcp" {
 		id := time.Now().UnixNano()
 		data, _ := json.Marshal(OutgoingMessage{ID: id, Message: "Deleting DNS entry", Success: true})
@@ -40,19 +53,6 @@ func DeleteContainerHandler(conn *websocket.Conn, mt int, msg IncomingMessage) {
 				conn.WriteMessage(mt, data)
 			}
 		}
-	}
-	// -------------------------
-
-	// Delete the container
-	id := time.Now().UnixNano()
-	data, _ := json.Marshal(OutgoingMessage{ID: id, Message: "Deleting container", Success: true})
-	conn.WriteMessage(mt, data)
-
-	err = lxd.DeleteContainer(msg.Data["host"], msg.Data["name"])
-	if err != nil {
-		data, _ := json.Marshal(OutgoingMessage{ID: id, Message: "failed: " + err.Error(), Success: false})
-		conn.WriteMessage(mt, data)
-		return
 	}
 
 	data, _ = json.Marshal(OutgoingMessage{ID: id, Message: "done", Success: true, Redirect: "/containers"})
