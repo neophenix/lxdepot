@@ -82,11 +82,41 @@ func CreateContainerHandler(conn *websocket.Conn, mt int, msg IncomingMessage) {
 	id = time.Now().UnixNano()
 	data, _ = json.Marshal(OutgoingMessage{ID: id, Message: "Waiting for networking", Success: true})
 	conn.WriteMessage(mt, data)
-	// just going to sleep for now, maybe ping later?  This is to ensure the networking is up before
-	// we continue on.  Otherwise because we can't really check the command status, we will think things
-	// like yum installed what we wanted, when really it bailed due to a network issue.
-	time.Sleep(5 * time.Second)
-	data, _ = json.Marshal(OutgoingMessage{ID: id, Message: "done", Success: true})
+
+	// We will try 10 times to see if the networking comes up by asking LXD for the container state
+	// and checking to see if we found an ipv4 address
+	networkUp := false
+	i := 0
+	for !networkUp && i < 10 {
+		// this isn't exactly as efficient as it could be but don't feel like making a new call just for this at the moment
+		containerInfo, err := lxd.GetContainers(msg.Data["host"], msg.Data["name"], true)
+		if err != nil {
+			data, _ = json.Marshal(OutgoingMessage{ID: id, Message: err.Error(), Success: false})
+			conn.WriteMessage(mt, data)
+			return
+		}
+		// look through the container state for an address in the inet family, right not we aren't worried about comparing
+		// this address to what we got from DNS if we are using that, maybe in the future if it becomes an issue
+		for iface, info := range containerInfo[0].State.Network {
+			if iface != "lo" {
+				for _, addr := range info.Addresses {
+					if addr.Family == "inet" && addr.Address != "" {
+						networkUp = true
+					}
+				}
+			}
+		}
+		i++
+		time.Sleep(1 * time.Second)
+	}
+	if !networkUp {
+		// we will bail if we didn't get an address since if we plan on bootstrapping we won't get far
+		data, _ = json.Marshal(OutgoingMessage{ID: id, Message: "no ip detected", Success: false})
+		conn.WriteMessage(mt, data)
+		return
+	}
+
+	data, _ = json.Marshal(OutgoingMessage{ID: id, Message: "network is up", Success: true})
 	conn.WriteMessage(mt, data)
 
 	err = BootstrapContainer(conn, mt, msg.Data["host"], msg.Data["name"])
