@@ -8,3 +8,11 @@ build:
 clean:
 	$(GO) clean
 	rm -f $(BINARY_NAME)
+install:
+	mkdir -p /opt/lxdepot
+	mkdir -p /opt/lxdepot/web
+	mkdir -p /opt/lxdepot/configs
+	mkdir -p /opt/lxdepot/bootstrap
+	cp lxdepot /opt/lxdepot/
+	cp configs/sample.yaml /opt/lxdepot/configs/
+	rsync -aqc web/ /opt/lxdepot/web/
