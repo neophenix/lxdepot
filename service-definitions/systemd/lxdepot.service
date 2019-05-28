@@ -6,3 +6,6 @@ After=network.target
 WorkingDirectory=/opt/lxdepot/
 ExecStart=/opt/lxdepot/lxdepot
 Restart=always
+
+[Install]
+WantedBy=default.target
