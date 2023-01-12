@@ -145,7 +145,7 @@ func setupContainerNetwork(conn *websocket.Conn, mt int, host string, name strin
 
 	// Given the OS reported by LXD, check to see if we have any networking config defined, and if so loop
 	// over that array of templates and upload each one
-	os := containerInfo[0].Container.ExpandedConfig["image.os"] + containerInfo[0].Container.ExpandedConfig["image.release"]
+	os := strings.ToLower(containerInfo[0].Container.ExpandedConfig["image.os"] + containerInfo[0].Container.ExpandedConfig["image.release"])
 	if networking, ok := Conf.Networking[os]; ok {
 		for _, file := range networking {
 			var contents bytes.Buffer

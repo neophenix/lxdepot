@@ -117,7 +117,7 @@ func BootstrapContainer(conn *websocket.Conn, mt int, host string, name string) 
 	conn.WriteMessage(mt, data)
 
 	// if we have a bootstrap section for this OS, run it
-	os := containerInfo[0].Container.ExpandedConfig["image.os"] + containerInfo[0].Container.ExpandedConfig["image.release"]
+	os := strings.ToLower(containerInfo[0].Container.ExpandedConfig["image.os"] + containerInfo[0].Container.ExpandedConfig["image.release"])
 	if bootstrap, ok := Conf.Bootstrap[os]; ok {
 		for _, step := range bootstrap {
 			// depending on the type, call the appropriate helper

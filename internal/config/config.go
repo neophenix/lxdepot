@@ -74,6 +74,18 @@ func ParseConfig(configFile string) *Config {
 		log.Fatal("Could not parse config [" + configFile + "] : " + err.Error() + "\n")
 	}
 
+	// because there is no conformity with image os names / releases we are going to lowercase
+	// them all in our internal struct here so we have some sanity
+	for os := range config.Networking {
+		config.Networking[strings.ToLower(os)] = config.Networking[os]
+	}
+	for os := range config.Bootstrap {
+		config.Bootstrap[strings.ToLower(os)] = config.Bootstrap[os]
+	}
+	for os := range config.Playbooks {
+		config.Playbooks[strings.ToLower(os)] = config.Playbooks[os]
+	}
+
 	config.verifyConfig()
 
 	return &config
