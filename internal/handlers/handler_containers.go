@@ -4,11 +4,12 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"github.com/neophenix/lxdepot/internal/lxd"
 	"html/template"
 	"log"
 	"net/http"
 	"regexp"
+
+	"github.com/neophenix/lxdepot/internal/lxd"
 )
 
 // ContainerListHandler handles requests for /containers

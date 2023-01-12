@@ -4,9 +4,10 @@ package dns
 import (
 	"errors"
 	"fmt"
-	"github.com/neophenix/lxdepot/internal/config"
 	"net"
 	"strings"
+
+	"github.com/neophenix/lxdepot/internal/config"
 )
 
 // RecordList is a simple look at DNS records used as a common return for our interface

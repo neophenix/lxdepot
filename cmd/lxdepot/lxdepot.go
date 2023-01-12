@@ -12,12 +12,13 @@ package main
 import (
 	"flag"
 	"fmt"
+	"log"
+	"net/http"
+
 	"github.com/neophenix/lxdepot/internal/config"
 	"github.com/neophenix/lxdepot/internal/handlers"
 	"github.com/neophenix/lxdepot/internal/handlers/ws"
 	"github.com/neophenix/lxdepot/internal/lxd"
-	"log"
-	"net/http"
 )
 
 // All our command line params and config

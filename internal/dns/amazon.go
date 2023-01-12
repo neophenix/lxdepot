@@ -2,13 +2,14 @@ package dns
 
 import (
 	"errors"
+	"strconv"
+	"strings"
+	"time"
+
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/route53"
-	"strconv"
-	"strings"
-	"time"
 )
 
 // AmazonDNS stores all the options we need to talk to Route 53

@@ -1,9 +1,10 @@
 package handlers
 
 import (
-	"github.com/neophenix/lxdepot/internal/utils"
 	"html/template"
 	"log"
+
+	"github.com/neophenix/lxdepot/internal/utils"
 )
 
 // WebRoot is the path to the web templates + static files

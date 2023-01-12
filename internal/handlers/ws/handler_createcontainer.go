@@ -3,12 +3,13 @@ package ws
 import (
 	"bytes"
 	"encoding/json"
-	"github.com/gorilla/websocket"
-	"github.com/neophenix/lxdepot/internal/dns"
-	"github.com/neophenix/lxdepot/internal/lxd"
 	"strings"
 	"text/template"
 	"time"
+
+	"github.com/gorilla/websocket"
+	"github.com/neophenix/lxdepot/internal/dns"
+	"github.com/neophenix/lxdepot/internal/lxd"
 )
 
 // CreateContainerHandler creates the container on our host, then if we are using a 3rd

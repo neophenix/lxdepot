@@ -7,14 +7,15 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
+	"net/http"
+	"os"
+	"strings"
+	"time"
+
 	"github.com/gorilla/websocket"
 	"github.com/neophenix/lxdepot/internal/config"
 	"github.com/neophenix/lxdepot/internal/lxd"
-	"io/ioutil"
-	"log"
-	"net/http"
-	"strings"
-	"time"
 )
 
 // IncomingMessage is for messages from the client to us
@@ -148,7 +149,7 @@ func ContainerCreateFile(conn *websocket.Conn, mt int, host string, name string,
 	var contents []byte
 	var err error
 	if info.LocalPath != "" {
-		contents, err = ioutil.ReadFile(info.LocalPath)
+		contents, err = os.ReadFile(info.LocalPath)
 		if err != nil {
 			data, _ = json.Marshal(OutgoingMessage{ID: id, Message: "failed: " + err.Error(), Success: false})
 			conn.WriteMessage(mt, data)

@@ -3,9 +3,10 @@ package handlers
 import (
 	"bytes"
 	"fmt"
-	"github.com/neophenix/lxdepot/internal/lxd"
 	"log"
 	"net/http"
+
+	"github.com/neophenix/lxdepot/internal/lxd"
 )
 
 // HostListHandler handles requests for /hosts

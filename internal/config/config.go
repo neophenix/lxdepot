@@ -3,10 +3,12 @@
 package config
 
 import (
-	"gopkg.in/yaml.v2"
-	"io/ioutil"
 	"log"
+	"os"
+	"strconv"
 	"strings"
+
+	"gopkg.in/yaml.v2"
 )
 
 // structs here are all in reverse order with our main config last
@@ -61,7 +63,7 @@ type Config struct {
 // We then call verifyConfig to make sure all the needed settings are there, any error we encounter
 // a user should know about on startup so we log and die
 func ParseConfig(configFile string) *Config {
-	bytes, err := ioutil.ReadFile(configFile)
+	bytes, err := os.ReadFile(configFile)
 	if err != nil {
 		log.Fatal("Could not read config [" + configFile + "] : " + err.Error() + "\n")
 	}
@@ -97,7 +99,7 @@ func (c *Config) verifyConfig() {
 
 	for idx, lxdh := range c.LXDhosts {
 		if lxdh.Host == "" {
-			log.Fatal("missing host param for lxdhost at index: " + string(idx) + "\n")
+			log.Fatal("missing host param for lxdhost at index: " + strconv.Itoa(idx) + "\n")
 		}
 		if lxdh.Cert == "" {
 			log.Fatal("missing certificate for lxdhost: " + lxdh.Host + "\n")
@@ -111,7 +113,7 @@ func (c *Config) verifyConfig() {
 // the value we were passed
 func getValueOrFileContents(value string) string {
 	if strings.HasPrefix(value, "file:") {
-		data, err := ioutil.ReadFile(strings.TrimPrefix(value, "file:"))
+		data, err := os.ReadFile(strings.TrimPrefix(value, "file:"))
 		if err != nil {
 			log.Fatal("Could not read file " + strings.TrimPrefix(value, "file:") + " : " + err.Error())
 		}

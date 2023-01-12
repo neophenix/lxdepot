@@ -2,13 +2,14 @@ package dns
 
 import (
 	"errors"
-	"golang.org/x/oauth2"
-	"golang.org/x/oauth2/google"
-	gdns "google.golang.org/api/dns/v2beta1"
-	"io/ioutil"
+	"os"
 	"strconv"
 	"strings"
 	"time"
+
+	"golang.org/x/oauth2"
+	"golang.org/x/oauth2/google"
+	gdns "google.golang.org/api/dns/v2beta1"
 )
 
 // GoogleDNS stores all the options we need to talk to GCP
@@ -31,7 +32,7 @@ var gcache googleRrsetCache
 // The creds, project, and zone here are actually in the options as well, but they are important
 // enough to warrant being "top level" items
 func NewGoogleDNS(creds string, project string, zone string) *GoogleDNS {
-	data, _ := ioutil.ReadFile(creds)
+	data, _ := os.ReadFile(creds)
 	return &GoogleDNS{
 		Creds:   data,
 		Project: project,

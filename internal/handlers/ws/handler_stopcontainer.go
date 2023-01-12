@@ -2,9 +2,10 @@ package ws
 
 import (
 	"encoding/json"
+	"time"
+
 	"github.com/gorilla/websocket"
 	"github.com/neophenix/lxdepot/internal/lxd"
-	"time"
 )
 
 // StopContainerHandler stops a running container

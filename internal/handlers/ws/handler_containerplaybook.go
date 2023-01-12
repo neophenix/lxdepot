@@ -2,9 +2,10 @@ package ws
 
 import (
 	"encoding/json"
+	"time"
+
 	"github.com/gorilla/websocket"
 	"github.com/neophenix/lxdepot/internal/lxd"
-	"time"
 )
 
 // ContainerPlaybookHandler handles requests to run various playbooks on the container, including

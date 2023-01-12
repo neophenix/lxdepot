@@ -2,11 +2,12 @@ package ws
 
 import (
 	"encoding/json"
+	"strings"
+	"time"
+
 	"github.com/gorilla/websocket"
 	"github.com/neophenix/lxdepot/internal/dns"
 	"github.com/neophenix/lxdepot/internal/lxd"
-	"strings"
-	"time"
 )
 
 // DeleteContainerHandler first stops a running container (there is no force like the lxc command line),

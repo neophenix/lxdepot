@@ -4,15 +4,16 @@ package lxd
 import (
 	"errors"
 	"fmt"
-	"github.com/lxc/lxd/client"
-	"github.com/lxc/lxd/shared/api"
-	"github.com/neophenix/lxdepot/internal/config"
-	"io/ioutil"
+	"io"
 	"log"
 	"math"
 	"os"
 	"strings"
 	"time"
+
+	lxd "github.com/lxc/lxd/client"
+	"github.com/lxc/lxd/shared/api"
+	"github.com/neophenix/lxdepot/internal/config"
 )
 
 // Conf is our main config
@@ -47,9 +48,9 @@ type HostResourceInfo struct {
 // stdout, etc need some place to go, but at the moment we don't care about the data.
 type DiscardCloser struct{}
 
-// Write just sends its data to the ioutil.Discard object
+// Write just sends its data to the io.Discard object
 func (DiscardCloser) Write(b []byte) (int, error) {
-	return ioutil.Discard.Write(b)
+	return io.Discard.Write(b)
 }
 
 // Close does nothing and is there just to satisfy the WriteCloser interface
@@ -227,13 +228,13 @@ func CreateContainer(host string, name string, image string, storagepool string,
 
 	// Take the ContinerPut and initialize our Post, its inlined so just toss all the values in
 	req := api.ContainersPost{
-		put,
-		name,
-		api.ContainerSource{
+		ContainerPut: put,
+		Name:         name,
+		Source: api.ContainerSource{
 			Type:  "image",
 			Alias: image,
 		},
-		"", // InstanceType, but we just use the default which should be Persistent
+		InstanceType: "", // we just use the default which should be Persistent
 	}
 
 	// schedule the create with LXD, this happens in the background

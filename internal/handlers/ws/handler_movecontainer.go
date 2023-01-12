@@ -2,9 +2,10 @@ package ws
 
 import (
 	"encoding/json"
+	"time"
+
 	"github.com/gorilla/websocket"
 	"github.com/neophenix/lxdepot/internal/lxd"
-	"time"
 )
 
 // MoveContainerHandler wraps lxd.MoveContainer and reports any errors it returns
