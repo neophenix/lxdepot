@@ -400,7 +400,10 @@ func GetHostResources(host string) (map[string]HostResourceInfo, error) {
 			if err != nil {
 				log.Printf("Connection error to " + lxdh.Host + " : " + err.Error())
 			} else {
-				resources, _ = conn.GetServerResources()
+				resources, err = conn.GetServerResources()
+				if err != nil {
+					return nil, err
+				}
 			}
 
 			resourceHostMap[lxdh.Host] = HostResourceInfo{
