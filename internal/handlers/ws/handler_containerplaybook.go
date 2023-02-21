@@ -45,20 +45,22 @@ func ContainerPlaybookHandler(conn *websocket.Conn, mt int, msg IncomingMessage)
 		if playbook, ok := playbooks[msg.Data["playbook"]]; ok {
 			// Once we are sure the OS for this image exists in or config and we have the requested playbook
 			// run it in basically the same fashion we run a boostrap
-			for _, step := range playbook {
-				// depending on the type, call the appropriate helper
-				if step.Type == "file" {
-					err = ContainerCreateFile(conn, mt, msg.Data["host"], msg.Data["name"], step)
-					if err != nil {
-						return
-					}
-				} else if step.Type == "command" {
-					err = ContainerExecCommand(conn, mt, msg.Data["host"], msg.Data["name"], step)
-					if err != nil {
-						return
+			go func() {
+				for _, step := range playbook {
+					// depending on the type, call the appropriate helper
+					if step.Type == "file" {
+						err = containerCreateFile(conn, mt, msg.Data["host"], msg.Data["name"], step)
+						if err != nil {
+							return
+						}
+					} else if step.Type == "command" {
+						err = containerExecCommand(conn, mt, msg.Data["host"], msg.Data["name"], step)
+						if err != nil {
+							return
+						}
 					}
 				}
-			}
+			}()
 		}
 	}
 }

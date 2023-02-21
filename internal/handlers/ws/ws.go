@@ -101,7 +101,7 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 
 // BootstrapContainer loops over all the FileOrCommand objects in the bootstrap section of the config
 // and performs each item sequentially
-func BootstrapContainer(conn *websocket.Conn, mt int, host string, name string) error {
+func BootstrapContainer(conn *websocket.Conn, mt int, host string, name string) {
 	id := time.Now().UnixNano()
 	data, _ := json.Marshal(OutgoingMessage{ID: id, Message: "Getting container state", Success: true})
 	conn.WriteMessage(mt, data)
@@ -111,7 +111,7 @@ func BootstrapContainer(conn *websocket.Conn, mt int, host string, name string) 
 	if err != nil {
 		data, _ = json.Marshal(OutgoingMessage{ID: id, Message: "failed: " + err.Error(), Success: false})
 		conn.WriteMessage(mt, data)
-		return err
+		return
 	}
 	data, _ = json.Marshal(OutgoingMessage{ID: id, Message: "done", Success: true})
 	conn.WriteMessage(mt, data)
@@ -119,32 +119,35 @@ func BootstrapContainer(conn *websocket.Conn, mt int, host string, name string) 
 	// if we have a bootstrap section for this OS, run it
 	os := strings.ToLower(containerInfo[0].Container.ExpandedConfig["image.os"] + containerInfo[0].Container.ExpandedConfig["image.release"])
 	if bootstrap, ok := Conf.Bootstrap[os]; ok {
-		for _, step := range bootstrap {
-			// depending on the type, call the appropriate helper
-			if step.Type == "file" {
-				err = ContainerCreateFile(conn, mt, host, name, step)
-				if err != nil {
-					return err
-				}
-			} else if step.Type == "command" {
-				err = ContainerExecCommand(conn, mt, host, name, step)
-				if err != nil {
-					return err
+		go func() {
+			for _, step := range bootstrap {
+				// depending on the type, call the appropriate helper
+				if step.Type == "file" {
+					err = containerCreateFile(conn, mt, host, name, step)
+					if err != nil {
+						return
+					}
+				} else if step.Type == "command" {
+					err = containerExecCommand(conn, mt, host, name, step)
+					if err != nil {
+						return
+					}
 				}
 			}
-		}
+		}()
 	}
-
-	return nil
 }
 
-// ContainerCreateFile operates on a Type = file bootstrap / playbook step.
+// containerCreateFile operates on a Type = file bootstrap / playbook step.
 // If there is a local_path, it reads the contents of that file from disk.
 // The contents are then sent to the lxd.CreateFile with the path on the container and permissions to "do the right thing"
-func ContainerCreateFile(conn *websocket.Conn, mt int, host string, name string, info config.FileOrCommand) error {
+func containerCreateFile(conn *websocket.Conn, mt int, host string, name string, info config.FileOrCommand) error {
 	id := time.Now().UnixNano()
 	data, _ := json.Marshal(OutgoingMessage{ID: id, Message: "Creating " + info.RemotePath, Success: true})
 	conn.WriteMessage(mt, data)
+
+	// log what we are doing so anyone looking at the server will know
+	log.Printf("creating file on container %v: %v\n", name, info.RemotePath)
 
 	var contents []byte
 	var err error
@@ -169,12 +172,15 @@ func ContainerCreateFile(conn *websocket.Conn, mt int, host string, name string,
 	return nil
 }
 
-// ContainerExecCommand operates on a Type = command bootstrap / playbook step.
+// containerExecCommand operates on a Type = command bootstrap / playbook step.
 // This is really just a wrapper around lxd.ExecCommand
-func ContainerExecCommand(conn *websocket.Conn, mt int, host string, name string, info config.FileOrCommand) error {
+func containerExecCommand(conn *websocket.Conn, mt int, host string, name string, info config.FileOrCommand) error {
 	id := time.Now().UnixNano()
 	data, _ := json.Marshal(OutgoingMessage{ID: id, Message: "Executing " + strings.Join(info.Command, " "), Success: true})
 	conn.WriteMessage(mt, data)
+
+	// log what we are doing so anyone looking at the server will know
+	log.Printf("running command on container %v: %v\n", name, info.Command)
 
 	success := false
 	attempt := 1
