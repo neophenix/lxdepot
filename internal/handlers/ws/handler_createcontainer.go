@@ -120,10 +120,7 @@ func CreateContainerHandler(conn *websocket.Conn, mt int, msg IncomingMessage) {
 	data, _ = json.Marshal(OutgoingMessage{ID: id, Message: "network is up", Success: true})
 	conn.WriteMessage(mt, data)
 
-	err = BootstrapContainer(conn, mt, msg.Data["host"], msg.Data["name"])
-	if err != nil {
-		return
-	}
+	BootstrapContainer(conn, mt, msg.Data["host"], msg.Data["name"])
 }
 
 // setupContainerNetwork looks at the OS of a container and then looks up any network template in our config.
