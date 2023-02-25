@@ -1,26 +1,28 @@
 package ws
 
 import (
-	"encoding/json"
 	"time"
 
-	"github.com/gorilla/websocket"
+	"github.com/neophenix/lxdepot/internal/circularbuffer"
 	"github.com/neophenix/lxdepot/internal/lxd"
 )
 
 // MoveContainerHandler wraps lxd.MoveContainer and reports any errors it returns
-func MoveContainerHandler(conn *websocket.Conn, mt int, msg IncomingMessage) {
+func MoveContainerHandler(buffer *circularbuffer.CircularBuffer[OutgoingMessage], msg IncomingMessage) {
 	id := time.Now().UnixNano()
-	data, _ := json.Marshal(OutgoingMessage{ID: id, Message: "Moving container", Success: true})
-	conn.WriteMessage(mt, data)
+	if buffer != nil {
+		buffer.Enqueue(OutgoingMessage{ID: id, Message: "Moving container", Success: true})
+	}
 
 	err := lxd.MoveContainer(msg.Data["host"], msg.Data["dst_host"], msg.Data["name"])
 	if err != nil {
-		data, _ := json.Marshal(OutgoingMessage{ID: id, Message: "failed: " + err.Error(), Success: false})
-		conn.WriteMessage(mt, data)
+		if buffer != nil {
+			buffer.Enqueue(OutgoingMessage{ID: id, Message: "failed: " + err.Error(), Success: false})
+		}
 		return
 	}
 
-	data, _ = json.Marshal(OutgoingMessage{ID: id, Message: "done", Success: false})
-	conn.WriteMessage(mt, data)
+	if buffer != nil {
+		buffer.Enqueue(OutgoingMessage{ID: id, Message: "done", Success: false})
+	}
 }
