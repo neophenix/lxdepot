@@ -1,29 +1,31 @@
 package ws
 
 import (
-	"encoding/json"
 	"time"
 
-	"github.com/gorilla/websocket"
+	"github.com/neophenix/lxdepot/internal/circularbuffer"
 	"github.com/neophenix/lxdepot/internal/lxd"
 )
 
 // StartContainerHandler starts a stopped container
-func StartContainerHandler(conn *websocket.Conn, mt int, msg IncomingMessage) error {
+func StartContainerHandler(buffer *circularbuffer.CircularBuffer[OutgoingMessage], msg IncomingMessage) error {
 	// Start the container
 	id := time.Now().UnixNano()
-	data, _ := json.Marshal(OutgoingMessage{ID: id, Message: "Starting container", Success: true})
-	conn.WriteMessage(mt, data)
+	if buffer != nil {
+		buffer.Enqueue(OutgoingMessage{ID: id, Message: "Starting container", Success: true})
+	}
 
 	err := lxd.StartContainer(msg.Data["host"], msg.Data["name"])
 	if err != nil {
-		data, _ := json.Marshal(OutgoingMessage{ID: id, Message: "failed: " + err.Error(), Success: false})
-		conn.WriteMessage(mt, data)
+		if buffer != nil {
+			buffer.Enqueue(OutgoingMessage{ID: id, Message: "failed: " + err.Error(), Success: false})
+		}
 		return err
 	}
 
-	data, _ = json.Marshal(OutgoingMessage{ID: id, Message: "done", Success: true})
-	conn.WriteMessage(mt, data)
+	if buffer != nil {
+		buffer.Enqueue(OutgoingMessage{ID: id, Message: "done", Success: true})
+	}
 
 	return nil
 }

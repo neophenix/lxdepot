@@ -14,14 +14,16 @@ import (
 	"time"
 
 	"github.com/gorilla/websocket"
+	"github.com/neophenix/lxdepot/internal/circularbuffer"
 	"github.com/neophenix/lxdepot/internal/config"
 	"github.com/neophenix/lxdepot/internal/lxd"
 )
 
 // IncomingMessage is for messages from the client to us
 type IncomingMessage struct {
-	Action string            // what type of request: create, start, etc.
-	Data   map[string]string // in the UI this is a single level JSON object so requests can have varying options
+	Action    string            `json:"action"` // what type of request: create, start, etc.
+	BrowserID string            `json:"id"`     // ID of our users browser
+	Data      map[string]string `json:"data"`   // in the UI this is a single level JSON object so requests can have varying options
 }
 
 // OutgoingMessage is from us to the UI
@@ -31,6 +33,9 @@ type OutgoingMessage struct {
 	Success  bool   // success is used to give a visual hint to the user how the command went (true = green, false = red)
 	Redirect string // If we want to suggest a redirect to another page, like back to /containers after we create a new one
 }
+
+// MessageBuffer will house our outgoing messages so clients can navigate around and get updates
+var MessageBuffer = map[string]*circularbuffer.CircularBuffer[OutgoingMessage]{}
 
 // I need to see if I still need this, I think it was for when I was testing websockets using static assets served
 // elsewhere, I think it can be removed
@@ -66,31 +71,48 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 			break
 		}
 
+		var buffer *circularbuffer.CircularBuffer[OutgoingMessage]
+		if msg.BrowserID != "" && msg.BrowserID != "none" {
+			// make sure we have a buffer setup for this id
+			var ok bool
+			if buffer, ok = MessageBuffer[msg.BrowserID]; !ok {
+				buffer = &circularbuffer.CircularBuffer[OutgoingMessage]{}
+				MessageBuffer[msg.BrowserID] = buffer
+			}
+		}
+
+		// any action is going to kickstart consuming messages in the background
+		go func() {
+			consumeMessages(conn, buffer)
+		}()
+
 		// Action tells us what we want to do, so this is a pretty simple router for the various requests
 		// Each handler should be in its own handler_* file in the ws package
 		switch msg.Action {
 		case "start":
-			StartContainerHandler(conn, mt, msg)
+			StartContainerHandler(buffer, msg)
 			data, _ := json.Marshal(OutgoingMessage{Redirect: "/container/" + msg.Data["host"] + ":" + msg.Data["name"]})
 			conn.WriteMessage(mt, data)
 		case "stop":
-			StopContainerHandler(conn, mt, msg)
+			StopContainerHandler(buffer, msg)
 			data, _ := json.Marshal(OutgoingMessage{Redirect: "/container/" + msg.Data["host"] + ":" + msg.Data["name"]})
 			conn.WriteMessage(mt, data)
 		case "create":
-			CreateContainerHandler(conn, mt, msg)
+			CreateContainerHandler(buffer, msg)
 			data, _ := json.Marshal(OutgoingMessage{Redirect: "/container/" + msg.Data["host"] + ":" + msg.Data["name"]})
 			conn.WriteMessage(mt, data)
 		case "delete":
-			DeleteContainerHandler(conn, mt, msg)
+			DeleteContainerHandler(buffer, msg)
 			data, _ := json.Marshal(OutgoingMessage{Redirect: "/containers"})
 			conn.WriteMessage(mt, data)
 		case "move":
-			MoveContainerHandler(conn, mt, msg)
+			MoveContainerHandler(buffer, msg)
 			data, _ := json.Marshal(OutgoingMessage{Redirect: "/container/" + msg.Data["host"] + ":" + msg.Data["name"]})
 			conn.WriteMessage(mt, data)
 		case "playbook":
-			ContainerPlaybookHandler(conn, mt, msg)
+			ContainerPlaybookHandler(buffer, msg)
+		case "consume":
+			// a noop since we always kickstart consuming when we get a message
 		default:
 			id := time.Now().UnixNano()
 			data, _ := json.Marshal(OutgoingMessage{ID: id, Message: "Request not understood", Success: false})
@@ -99,22 +121,58 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func consumeMessages(conn *websocket.Conn, buffer *circularbuffer.CircularBuffer[OutgoingMessage]) {
+	if buffer != nil {
+		pingWait := 0
+		for {
+			msg, ok := buffer.Dequeue()
+			if ok {
+				data, err := json.Marshal(msg)
+				if err == nil {
+					// outgoing messages should always be of a TextMessage type
+					err := conn.WriteMessage(websocket.TextMessage, data)
+					if err != nil {
+						// we lost the message, probably because the connection went away, so we will stop consuming
+						break
+					}
+				}
+			} else {
+				pingWait++
+				// 4 since we sleep for 250ms then the number of seconds we want to wait
+				if pingWait == 4*10 {
+					err := conn.WriteMessage(websocket.PingMessage, nil)
+					if err != nil {
+						// connection likely broken here, stop consuming
+						break
+					}
+					pingWait = 0
+				}
+			}
+			// if we have nothing to consume, wait some amount of time, 1/4 second seems like a good start
+			time.Sleep(250 * time.Millisecond)
+		}
+	}
+}
+
 // BootstrapContainer loops over all the FileOrCommand objects in the bootstrap section of the config
 // and performs each item sequentially
-func BootstrapContainer(conn *websocket.Conn, mt int, host string, name string) {
+func BootstrapContainer(buffer *circularbuffer.CircularBuffer[OutgoingMessage], host string, name string) {
 	id := time.Now().UnixNano()
-	data, _ := json.Marshal(OutgoingMessage{ID: id, Message: "Getting container state", Success: true})
-	conn.WriteMessage(mt, data)
+	if buffer != nil {
+		buffer.Enqueue(OutgoingMessage{ID: id, Message: "Getting container state", Success: true})
+	}
 
 	// Get the container state again, should probably just grab this once but for now lets be expensive
 	containerInfo, err := lxd.GetContainers(host, name, true)
 	if err != nil {
-		data, _ = json.Marshal(OutgoingMessage{ID: id, Message: "failed: " + err.Error(), Success: false})
-		conn.WriteMessage(mt, data)
+		if buffer != nil {
+			buffer.Enqueue(OutgoingMessage{ID: id, Message: "failed: " + err.Error(), Success: false})
+		}
 		return
 	}
-	data, _ = json.Marshal(OutgoingMessage{ID: id, Message: "done", Success: true})
-	conn.WriteMessage(mt, data)
+	if buffer != nil {
+		buffer.Enqueue(OutgoingMessage{ID: id, Message: "done", Success: true})
+	}
 
 	// if we have a bootstrap section for this OS, run it
 	os := strings.ToLower(containerInfo[0].Container.ExpandedConfig["image.os"] + containerInfo[0].Container.ExpandedConfig["image.release"])
@@ -123,12 +181,12 @@ func BootstrapContainer(conn *websocket.Conn, mt int, host string, name string) 
 			for _, step := range bootstrap {
 				// depending on the type, call the appropriate helper
 				if step.Type == "file" {
-					err = containerCreateFile(conn, mt, host, name, step)
+					err = containerCreateFile(buffer, host, name, step)
 					if err != nil {
 						return
 					}
 				} else if step.Type == "command" {
-					err = containerExecCommand(conn, mt, host, name, step)
+					err = containerExecCommand(buffer, host, name, step)
 					if err != nil {
 						return
 					}
@@ -141,10 +199,11 @@ func BootstrapContainer(conn *websocket.Conn, mt int, host string, name string) 
 // containerCreateFile operates on a Type = file bootstrap / playbook step.
 // If there is a local_path, it reads the contents of that file from disk.
 // The contents are then sent to the lxd.CreateFile with the path on the container and permissions to "do the right thing"
-func containerCreateFile(conn *websocket.Conn, mt int, host string, name string, info config.FileOrCommand) error {
+func containerCreateFile(buffer *circularbuffer.CircularBuffer[OutgoingMessage], host string, name string, info config.FileOrCommand) error {
 	id := time.Now().UnixNano()
-	data, _ := json.Marshal(OutgoingMessage{ID: id, Message: "Creating " + info.RemotePath, Success: true})
-	conn.WriteMessage(mt, data)
+	if buffer != nil {
+		buffer.Enqueue(OutgoingMessage{ID: id, Message: "Creating " + info.RemotePath, Success: true})
+	}
 
 	// log what we are doing so anyone looking at the server will know
 	log.Printf("creating file on container %v: %v\n", name, info.RemotePath)
@@ -154,30 +213,34 @@ func containerCreateFile(conn *websocket.Conn, mt int, host string, name string,
 	if info.LocalPath != "" {
 		contents, err = os.ReadFile(info.LocalPath)
 		if err != nil {
-			data, _ = json.Marshal(OutgoingMessage{ID: id, Message: "failed: " + err.Error(), Success: false})
-			conn.WriteMessage(mt, data)
+			if buffer != nil {
+				buffer.Enqueue(OutgoingMessage{ID: id, Message: "failed: " + err.Error(), Success: false})
+			}
 			return err
 		}
 	}
 
 	err = lxd.CreateFile(host, name, info.RemotePath, info.Perms, string(contents))
 	if err != nil {
-		data, _ = json.Marshal(OutgoingMessage{ID: id, Message: "failed: " + err.Error(), Success: false})
-		conn.WriteMessage(mt, data)
+		if buffer != nil {
+			buffer.Enqueue(OutgoingMessage{ID: id, Message: "failed: " + err.Error(), Success: false})
+		}
 		return err
 	}
 
-	data, _ = json.Marshal(OutgoingMessage{ID: id, Message: "done", Success: true})
-	conn.WriteMessage(mt, data)
+	if buffer != nil {
+		buffer.Enqueue(OutgoingMessage{ID: id, Message: "done", Success: true})
+	}
 	return nil
 }
 
 // containerExecCommand operates on a Type = command bootstrap / playbook step.
 // This is really just a wrapper around lxd.ExecCommand
-func containerExecCommand(conn *websocket.Conn, mt int, host string, name string, info config.FileOrCommand) error {
+func containerExecCommand(buffer *circularbuffer.CircularBuffer[OutgoingMessage], host string, name string, info config.FileOrCommand) error {
 	id := time.Now().UnixNano()
-	data, _ := json.Marshal(OutgoingMessage{ID: id, Message: "Executing " + strings.Join(info.Command, " "), Success: true})
-	conn.WriteMessage(mt, data)
+	if buffer != nil {
+		buffer.Enqueue(OutgoingMessage{ID: id, Message: "Executing " + strings.Join(info.Command, " "), Success: true})
+	}
 
 	// log what we are doing so anyone looking at the server will know
 	log.Printf("running command on container %v: %v\n", name, info.Command)
@@ -189,8 +252,9 @@ func containerExecCommand(conn *websocket.Conn, mt int, host string, name string
 	for !success && attempt <= 2 {
 		rv, err = lxd.ExecCommand(host, name, info.Command)
 		if err != nil {
-			data, _ = json.Marshal(OutgoingMessage{ID: id, Message: "failed: " + err.Error(), Success: false})
-			conn.WriteMessage(mt, data)
+			if buffer != nil {
+				buffer.Enqueue(OutgoingMessage{ID: id, Message: "failed: " + err.Error(), Success: false})
+			}
 			return err
 		}
 
@@ -209,12 +273,14 @@ func containerExecCommand(conn *websocket.Conn, mt int, host string, name string
 	}
 
 	if !success {
-		data, _ = json.Marshal(OutgoingMessage{ID: id, Message: fmt.Sprintf("failed with return value: %v", rv), Success: false})
-		conn.WriteMessage(mt, data)
+		if buffer != nil {
+			buffer.Enqueue(OutgoingMessage{ID: id, Message: fmt.Sprintf("failed with return value: %v", rv), Success: false})
+		}
 		return errors.New("command failed")
 	}
 
-	data, _ = json.Marshal(OutgoingMessage{ID: id, Message: "done", Success: true})
-	conn.WriteMessage(mt, data)
+	if buffer != nil {
+		buffer.Enqueue(OutgoingMessage{ID: id, Message: "done", Success: true})
+	}
 	return nil
 }
