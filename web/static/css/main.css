@@ -1,4 +1,8 @@
-body { margin: 0px; font-family: sans-serif; }
+body {
+    margin: 0px;
+    font-family: sans-serif;
+}
+
 #page-container {
     display: grid;
     grid-template-areas:
@@ -15,12 +19,16 @@ body { margin: 0px; font-family: sans-serif; }
     line-height: 40px;
     vertical-align: middle;
 }
+
 #header a {
     text-decoration: none;
     color: #f5f5f5;
 }
 
-#content { grid-area: content; }
+#content {
+    grid-area: content;
+}
+
 #proj-name {
     font-size: 20px;
     padding: 10px;
@@ -41,56 +49,90 @@ thead {
     background-color: #888888;
 }
 
-th, td {
+th,
+td {
     text-align: left;
     padding: 8px;
 }
 
-tr:nth-child(even) {background-color: #ececec;}
+tr:nth-child(even) {
+    background-color: #ececec;
+}
 
 #menu {
     grid-area: menu;
     background-color: #d64b00;
     height: 100vh;
 }
+
 #menu ul {
     padding: 0;
     margin: 0;
 }
+
 #menu li {
     list-style: none;
     line-height: 40px;
     text-align: center;
 }
+
 #menu li:hover {
     background-color: #ff5900;
     cursor: pointer;
 }
+
 #menu li a {
     text-decoration: none;
     color: #000000;
-    width:100%;
+    width: 100%;
     display: inline-block;
     border-bottom: #333333 1px solid;
     font-weight: bold;
 }
+
 #menu li a.active {
     background-color: #ff5900;
 }
 
+#panel-container {
+    position: fixed;
+    bottom: 0;
+    width: 100%;
+}
+
+#panel-menu {
+    background-color: dimgray;
+    height: 20px;
+    clear: both;
+}
+
+#panel-controls {
+    float: right;
+    /* keep the control away from the browsers resize area */
+    margin-right: 15px;
+    cursor: pointer;
+    /* stretch our controls to make them look nicer and stand out */
+    transform: scale(2, 1);
+    /* this barely does anything, but its just enough that I like it more with it */
+    font-weight: bolder;
+}
+
 #panel {
-    font-size: 30px;
+    /*font-size: 30px;*/
     color: white;
     background-color: black;
-    position: fixed;
-    width: 100%;
-    bottom: 0;
     height: 150px;
     overflow-y: scroll;
     display: none;
 }
-#panel .success { color: green; }
-#panel .error { color: red; }
+
+#panel .success {
+    color: green;
+}
+
+#panel .error {
+    color: red;
+}
 
 .field {
     margin: 5px 0px 10px 5px;
@@ -99,6 +141,7 @@ tr:nth-child(even) {background-color: #ececec;}
 .containerRow {
     cursor: pointer;
 }
+
 .hostRow {
     cursor: pointer;
 }
@@ -107,10 +150,13 @@ label {
     display: block;
     width: 150px;
 }
-input, select, button {
-    font-family : inherit;
-    font-size   : 100%;
-    width : 150px;
+
+input,
+select,
+button {
+    font-family: inherit;
+    font-size: 100%;
+    width: 150px;
     margin: 0;
     box-sizing: border-box;
 }
