@@ -27,60 +27,127 @@
     </div>
 </body>
 <script>
-function sendWSData(action, data) {
-    var panel = document.getElementById("panel");
-    var ws = new WebSocket("ws://"+window.location.host+"/ws");
-    var failure = false;
+let ws;
+let browserID;
+let panel;
+
+(function() {
+    // we use panel in multiple places so just grab it once
+    panel = document.getElementById("panel");
+    // get our browserid and connect our websocket
+    browserID = getBrowserID();
+    connectWS();
+})();
+
+// We just need an ID we can use / reuse for this user.  If I was pulling in various deps I would use a UUID here, but
+// since, at least right now, this has to be unique across a limited number of users and not secure, I'll just make
+// something up
+function getBrowserID() {
+    let idKey = "lxdepot browser id";
+    // first try to get any ID we already generated
+    try {
+        let id = localStorage.getItem(idKey);
+        if (id !== null) {
+            return id;
+        }
+    } catch (error) {
+        // would be a security error if they aren't allowing local storage.  maybe in the future add some error indicator
+        // that would tell the user that messages will be lost on page load.  for now I guess set the ID to something
+        // where the backend will just ignore storing messages for it.
+        return "none";
+    }
+
+    // we don't have an ID yet so make one.
+    // we will encode the useragent and pick random characters of it
+    let agent = btoa(window.navigator.userAgent);
+    // start the id with tens of seconds and milliseconds from timestamp
+    let id = ((Date.now()/100000) + "").split(".")[1];
+    // now grab some random bits of the ua hash
+    for (let i = 0; i < 10; i++) {
+        id += agent.charAt(Math.floor(Math.random() * agent.length));
+    }
+
+    // keep it for later
+    localStorage.setItem(idKey, id);
+    return id;
+}
+
+function connectWS() {
+    ws = new WebSocket("ws://"+window.location.host+"/ws");
     ws.onopen = function(e) {
-        showPanel();
-        ws.send(JSON.stringify({action: action, data: data}));
+        sendWSData("consume", {});
     }
     ws.onmessage = function(msg) {
-        var data = JSON.parse(msg.data);
+        let data = JSON.parse(msg.data);
         if (data.ID) {
-            var msgrow = document.getElementById(data.ID);
+            let msgRow = document.getElementById(data.ID);
 
-            if (msgrow == null) {
-                msgrow = document.createElement("div");
-                msgrow.id = data.ID;
+            if (msgRow == null) {
+                msgRow = createPanelRow(data.Message + " ... ", data.ID);
 
-                var m = document.createElement("span");
-                m.innerHTML = data.Message + " ... ";
-                m.className = "message";
-                msgrow.appendChild(m);
-
-                var s = document.createElement("span");
-                msgrow.appendChild(s);
-
-                panel.appendChild(msgrow);
+                panel.appendChild(msgRow);
                 panel.scrollTo(0, panel.scrollHeight);
             }
             else {
                 if (data.Success) {
-                    msgrow.children[1].className = "success";
+                    msgRow.children[1].className = "success";
                 }
-                msgrow.children[1].innerHTML = data.Message;
+                msgRow.children[1].innerHTML = data.Message;
             }
 
             if (!data.Success) {
                 failure = true;
-                msgrow.className = "error"
+                msgRow.className = "error"
             }
         }
 
-        if (data.Redirect && data.Redirect !== "" && ! failure) {
-            window.location = data.Redirect;
-        }
-    }
-    ws.onclose = function(e) {
-        if (! failure) {
-            setTimeout(hidePanel, 3000);
+        if (data.Redirect && data.Redirect !== "") {
+            let s = document.createElement("span");
+            s.innerHTML = "Redirecting to ";
+            let ref = document.createElement("a");
+            ref.setAttribute("href", data.Redirect);
+            ref.innerHTML = data.Redirect;
+            s.appendChild(ref)
+            let msgRow = createPanelRow(s, "");
+            panel.appendChild(msgRow);
+            panel.scrollTo(0, panel.scrollHeight);
+            setTimeout(() => {window.location = data.Redirect;}, 2000);
         }
     }
 }
 
+function sendWSData(action, data) {
+    // right now for any action other than consume we will want to show the panel.
+    if (action !== "consume") {
+        showPanel();
+    }
+    ws.send(JSON.stringify({action: action, id: browserID, data: data}));
+}
+
+// since we create a panel message row in multiple places do it all here instead of repeating ourself
+// the format of a message mostly <div><span>MESSAGE</span><span>STATUS</span></div>
+function createPanelRow(contents, id) {
+    let msgRow = document.createElement("div");
+    if (id != "") {
+        msgRow.id = id;
+    }
+
+    var msg = document.createElement("span");
+    if (contents instanceof HTMLElement) {
+        msg.appendChild(contents);
+    } else {
+        msg.innerHTML = contents;
+    }
+    msg.className = "message";
+    msgRow.appendChild(msg);
+
+    var s = document.createElement("span");
+    msgRow.appendChild(s);
+
+    return msgRow;
+}
+
 function togglePanel() {
-    var panel = document.getElementById("panel");
     if (panel.style.display == "block") {
         hidePanel();
     } else {
@@ -89,13 +156,11 @@ function togglePanel() {
 }
 
 function showPanel() {
-    var panel = document.getElementById("panel");
     panel.style.display = "block";
     document.getElementById("panel-controls").innerHTML = "&or;";
 }
 
 function hidePanel() {
-    var panel = document.getElementById("panel");
     panel.style.display = "none";
     panel.innerHTML = "";
     document.getElementById("panel-controls").innerHTML = "&and;";
