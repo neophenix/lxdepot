@@ -13,16 +13,16 @@ const BUFLEN = 20
 // "recent" or not
 const RECENTACCESS = 86400
 
-type CircularBuffer struct {
+type CircularBuffer[T any] struct {
 	head       int8 // "write" pointer
 	tail       int8 // "read" pointer
-	buffer     [BUFLEN]string
+	buffer     [BUFLEN]T
 	lastAccess time.Time
 }
 
 // Enqueue adds a string to our buffer and moves the head foward.  If the new head pointer is going to equal our tail
 // then we are overwriting unread messages and need to push the tail ahead to maintain our circle
-func (c *CircularBuffer) Enqueue(msg string) {
+func (c *CircularBuffer[T]) Enqueue(msg T) {
 	// record that we have accessed the buffer
 	c.lastAccess = time.Now()
 	// put our message in
@@ -40,22 +40,23 @@ func (c *CircularBuffer) Enqueue(msg string) {
 
 // Dequeue takes the first unread message, moves our tail pointer ahead and returns the message.  We also return an "ok"
 // boolean here so we can distinguish between an actual empty string and no message
-func (c *CircularBuffer) Dequeue() (string, bool) {
+func (c *CircularBuffer[T]) Dequeue() (T, bool) {
+	var msg T
 	// record that we have accessed the buffer
 	c.lastAccess = time.Now()
 	// if our head and tail are equal there is nothing in our buffer to return
 	if c.head == c.tail {
-		return "", false
+		return msg, false
 	}
 
-	msg := c.buffer[c.tail]
+	msg = c.buffer[c.tail]
 	c.tail = (c.tail + 1) % BUFLEN
 	return msg, true
 }
 
 // HasRecentAccess returns true / false if a buffer has been "recently" accessed.  Check the value of RECENTACCESS for
 // what we consider recent
-func (c *CircularBuffer) HasRecentAccess() bool {
+func (c *CircularBuffer[T]) HasRecentAccess() bool {
 	// buffers shouldn't be created until they are about to be used, this is internal so that should be fine.  So that
 	// being the case we would make it and then immediately put something in it which would set the lastAccess.  So if
 	// its not set then we assume its very new.  This could lead to memory leaks and we will need to move to a constructor
