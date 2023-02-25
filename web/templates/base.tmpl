@@ -18,6 +18,10 @@
         </div>
         <div id="content">
             {{template "content" .}}
+        </div>
+
+        <div id="panel-container">
+            <div id="panel-menu"><span id="panel-controls" onclick="togglePanel()">&and;</span></div>
             <div id="panel"></div>
         </div>
     </div>
@@ -75,15 +79,26 @@ function sendWSData(action, data) {
     }
 }
 
+function togglePanel() {
+    var panel = document.getElementById("panel");
+    if (panel.style.display == "block") {
+        hidePanel();
+    } else {
+        showPanel();
+    }
+}
+
 function showPanel() {
     var panel = document.getElementById("panel");
     panel.style.display = "block";
+    document.getElementById("panel-controls").innerHTML = "&or;";
 }
 
 function hidePanel() {
     var panel = document.getElementById("panel");
     panel.style.display = "none";
     panel.innerHTML = "";
+    document.getElementById("panel-controls").innerHTML = "&and;";
 }
 
 </script>
