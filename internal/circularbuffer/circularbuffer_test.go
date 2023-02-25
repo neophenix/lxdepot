@@ -16,7 +16,7 @@ type bufTest struct {
 
 // test enqueue and dequeue operations
 func TestBuffer(t *testing.T) {
-	buffer := &CircularBuffer{}
+	buffer := &CircularBuffer[string]{}
 
 	tests := []bufTest{
 		{op: "dequeue", value: "", ok: false, head: 0, tail: 0},
@@ -59,7 +59,7 @@ func TestBuffer(t *testing.T) {
 
 // some basic tests for recent access where we will force various time objects into a buffer
 func TestRecentAccess(t *testing.T) {
-	buffer := &CircularBuffer{}
+	buffer := &CircularBuffer[string]{}
 	if !buffer.HasRecentAccess() {
 		t.Error("expected new buffer HasRecentAccess to be true, but it is false")
 	}
