@@ -25,6 +25,7 @@ func StopContainerHandler(buffer *circularbuffer.CircularBuffer[OutgoingMessage]
 
 	if buffer != nil {
 		buffer.Enqueue(OutgoingMessage{ID: id, Message: "done", Success: true})
+		buffer.Enqueue(OutgoingMessage{Redirect: "/container/" + msg.Data["host"] + ":" + msg.Data["name"]})
 	}
 
 	return nil

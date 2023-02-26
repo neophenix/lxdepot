@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"os"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/gorilla/websocket"
@@ -37,6 +38,9 @@ type OutgoingMessage struct {
 // MessageBuffer will house our outgoing messages so clients can navigate around and get updates
 var MessageBuffer = map[string]*circularbuffer.CircularBuffer[OutgoingMessage]{}
 
+// mutex for our message buffer map
+var mutex = &sync.RWMutex{}
+
 // I need to see if I still need this, I think it was for when I was testing websockets using static assets served
 // elsewhere, I think it can be removed
 var upgrader = websocket.Upgrader{
@@ -58,7 +62,7 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 	defer conn.Close()
 	for {
 		// read out message and unmarshal it, log out what it was for debugging.
-		mt, encmsg, err := conn.ReadMessage()
+		_, encmsg, err := conn.ReadMessage()
 		if err != nil {
 			log.Println("read:", err)
 			break
@@ -75,10 +79,12 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 		if msg.BrowserID != "" && msg.BrowserID != "none" {
 			// make sure we have a buffer setup for this id
 			var ok bool
+			mutex.Lock()
 			if buffer, ok = MessageBuffer[msg.BrowserID]; !ok {
 				buffer = &circularbuffer.CircularBuffer[OutgoingMessage]{}
 				MessageBuffer[msg.BrowserID] = buffer
 			}
+			mutex.Unlock()
 		}
 
 		// any action is going to kickstart consuming messages in the background
@@ -91,32 +97,23 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 		switch msg.Action {
 		case "start":
 			StartContainerHandler(buffer, msg)
-			data, _ := json.Marshal(OutgoingMessage{Redirect: "/container/" + msg.Data["host"] + ":" + msg.Data["name"]})
-			conn.WriteMessage(mt, data)
 		case "stop":
 			StopContainerHandler(buffer, msg)
-			data, _ := json.Marshal(OutgoingMessage{Redirect: "/container/" + msg.Data["host"] + ":" + msg.Data["name"]})
-			conn.WriteMessage(mt, data)
 		case "create":
 			CreateContainerHandler(buffer, msg)
-			data, _ := json.Marshal(OutgoingMessage{Redirect: "/container/" + msg.Data["host"] + ":" + msg.Data["name"]})
-			conn.WriteMessage(mt, data)
 		case "delete":
 			DeleteContainerHandler(buffer, msg)
-			data, _ := json.Marshal(OutgoingMessage{Redirect: "/containers"})
-			conn.WriteMessage(mt, data)
 		case "move":
 			MoveContainerHandler(buffer, msg)
-			data, _ := json.Marshal(OutgoingMessage{Redirect: "/container/" + msg.Data["host"] + ":" + msg.Data["name"]})
-			conn.WriteMessage(mt, data)
 		case "playbook":
 			ContainerPlaybookHandler(buffer, msg)
 		case "consume":
 			// a noop since we always kickstart consuming when we get a message
 		default:
-			id := time.Now().UnixNano()
-			data, _ := json.Marshal(OutgoingMessage{ID: id, Message: "Request not understood", Success: false})
-			conn.WriteMessage(mt, data)
+			if buffer != nil {
+				id := time.Now().UnixNano()
+				buffer.Enqueue(OutgoingMessage{ID: id, Message: "Request not understood", Success: false})
+			}
 		}
 	}
 }
@@ -191,6 +188,9 @@ func BootstrapContainer(buffer *circularbuffer.CircularBuffer[OutgoingMessage], 
 						return
 					}
 				}
+			}
+			if buffer != nil {
+				buffer.Enqueue(OutgoingMessage{Redirect: "/container/" + host + ":" + name})
 			}
 		}()
 	}
@@ -283,4 +283,24 @@ func containerExecCommand(buffer *circularbuffer.CircularBuffer[OutgoingMessage]
 		buffer.Enqueue(OutgoingMessage{ID: id, Message: "done", Success: true})
 	}
 	return nil
+}
+
+// ManageBuffers starts a backend goroutine to periodically check our buffers and remove any that are old.
+func ManageBuffers() {
+	ticker := time.NewTicker(24 * time.Hour)
+	// normally we would have a channel to indicate we are done, but this will run until the main process exits
+	go func() {
+		for {
+			select {
+			case <-ticker.C:
+				mutex.Lock()
+				for id, buffer := range MessageBuffer {
+					if !buffer.HasRecentAccess() {
+						delete(MessageBuffer, id)
+					}
+				}
+				mutex.Unlock()
+			}
+		}
+	}()
 }

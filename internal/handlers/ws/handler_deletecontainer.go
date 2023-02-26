@@ -63,5 +63,6 @@ func DeleteContainerHandler(buffer *circularbuffer.CircularBuffer[OutgoingMessag
 
 	if buffer != nil {
 		buffer.Enqueue(OutgoingMessage{ID: id, Message: "done", Success: true, Redirect: "/containers"})
+		buffer.Enqueue(OutgoingMessage{Redirect: "/containers"})
 	}
 }
