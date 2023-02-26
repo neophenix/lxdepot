@@ -70,5 +70,8 @@ func main() {
 	// The root handler does all the route checking and handoffs
 	http.HandleFunc("/", handlers.RootHandler)
 
+	// our websocket maintenance function to clear out old buffers
+	ws.ManageBuffers()
+
 	log.Fatal(http.ListenAndServe(":"+port, nil))
 }

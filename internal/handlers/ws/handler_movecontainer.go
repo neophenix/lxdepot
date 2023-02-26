@@ -24,5 +24,6 @@ func MoveContainerHandler(buffer *circularbuffer.CircularBuffer[OutgoingMessage]
 
 	if buffer != nil {
 		buffer.Enqueue(OutgoingMessage{ID: id, Message: "done", Success: false})
+		buffer.Enqueue(OutgoingMessage{Redirect: "/container/" + msg.Data["host"] + ":" + msg.Data["name"]})
 	}
 }
