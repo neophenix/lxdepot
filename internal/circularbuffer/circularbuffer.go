@@ -3,7 +3,10 @@ package circularbuffer
 // a simple circular buffer to store messages that our web clients can read later, allowing command results to be stored
 // and read later so new page loads can read what they may have requested previously.
 
-import "time"
+import (
+	"sync"
+	"time"
+)
 
 // BUFLEN is the length of our buffer, not sure what a good value is here, doesn't need to hold everything but does need
 // to be enough to maintain context on what users are seeing when they read it
@@ -18,11 +21,14 @@ type CircularBuffer[T any] struct {
 	tail       int8 // "read" pointer
 	buffer     [BUFLEN]T
 	lastAccess time.Time
+	lock       sync.Mutex
 }
 
 // Enqueue adds a string to our buffer and moves the head foward.  If the new head pointer is going to equal our tail
 // then we are overwriting unread messages and need to push the tail ahead to maintain our circle
 func (c *CircularBuffer[T]) Enqueue(msg T) {
+	c.lock.Lock()
+	defer c.lock.Unlock()
 	// record that we have accessed the buffer
 	c.lastAccess = time.Now()
 	// put our message in
@@ -41,6 +47,8 @@ func (c *CircularBuffer[T]) Enqueue(msg T) {
 // Dequeue takes the first unread message, moves our tail pointer ahead and returns the message.  We also return an "ok"
 // boolean here so we can distinguish between an actual empty string and no message
 func (c *CircularBuffer[T]) Dequeue() (T, bool) {
+	c.lock.Lock()
+	defer c.lock.Unlock()
 	var msg T
 	// record that we have accessed the buffer
 	c.lastAccess = time.Now()
